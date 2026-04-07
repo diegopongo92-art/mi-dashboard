@@ -290,17 +290,17 @@
             const tLow = row.tono.toLowerCase();
             let tonoClass = 'neutro';
             let rowStyle = '';
-            let titularStyle = '';
 
+            // Colores pasteles un poco más intensos para toda la fila
             if (tLow.includes('pos')) {
                 tonoClass = 'positivo';
-                titularStyle = 'background-color: #dcfce7; border-radius: 6px; padding: 5px;'; 
+                rowStyle = 'background-color: #bbf7d0;'; // Verde pastel más intenso
             } else if (tLow.includes('neg')) {
                 tonoClass = 'negativo';
-                rowStyle = 'background-color: #fee2e2;'; 
+                rowStyle = 'background-color: #fecaca;'; // Rojo pastel más intenso
             } else {
                 tonoClass = 'neutro';
-                rowStyle = 'background-color: #fef9c3;'; 
+                rowStyle = 'background-color: #fde047;'; // Amarillo pastel más intenso
             }
             
             const linkHTML = row.link.includes('http') ? `<a href="${row.link}" target="_blank" class="btn-link">Abrir Nota</a>` : '<span style="color:#94a3b8; font-size:11px;">Sin Enlace</span>';
@@ -308,7 +308,7 @@
             tbody.innerHTML += `
                 <tr style="${rowStyle}">
                     <td data-label="Fecha" style="white-space:nowrap; font-weight:600; color:#64748b;">${row.fecha}</td>
-                    <td data-label="Noticia" style="${titularStyle}">
+                    <td data-label="Noticia">
                         <div style="font-weight:800; margin-bottom:5px; color:#0f172a;">${row.titular}</div>
                         <div style="font-size:10px; color:var(--accent); font-weight:800; text-transform:uppercase;">${row.medio}</div>
                     </td>
