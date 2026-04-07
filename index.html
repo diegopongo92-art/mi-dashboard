@@ -13,6 +13,8 @@
         
         /* Encabezado */
         header { background: var(--primary); padding: 15px 5%; box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-logo { height: 40px; background-color: white; padding: 5px 10px; border-radius: 6px; object-fit: contain; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         
         .main { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
 
@@ -68,6 +70,10 @@
 
         /* Responsivo para móviles (Versión Ultra-Compacta) */
         @media (max-width: 768px) {
+            .header-left { gap: 10px; }
+            .header-logo { height: 26px; padding: 4px 6px; }
+            header h1 { font-size: 0.85rem !important; }
+            
             .summary-cards { grid-template-columns: repeat(2, 1fr); }
             .actions-bar { justify-content: center; }
             
@@ -85,7 +91,7 @@
                 display: flex;
                 flex-wrap: wrap;
                 align-items: center;
-                gap: 8px 0; /* Espaciado vertical entre elementos */
+                gap: 8px 0; 
             }
             
             td { 
@@ -94,17 +100,15 @@
                 text-align: left !important; 
             }
             
-            /* Eliminamos subtítulos redundantes para ahorrar MUCHO espacio */
             td::before { display: none; } 
             
             /* Distribución de la tarjeta */
-            td:nth-child(1) { width: 50%; order: 1; font-size: 11px; color: #475569; } /* Fecha (Arriba izq) */
-            td:nth-child(3) { width: 50%; order: 2; text-align: right !important; } /* Tono (Arriba der) */
-            td:nth-child(2) { width: 100%; order: 3; } /* Titular y Medio (Centro) */
+            td:nth-child(1) { width: 50%; order: 1; font-size: 11px; color: #475569; } /* Fecha */
+            td:nth-child(3) { width: 50%; order: 2; text-align: right !important; } /* Tono */
+            td:nth-child(2) { width: 100%; order: 3; } /* Titular y Medio */
             td:nth-child(4) { width: 100%; order: 4; font-size: 12px; line-height: 1.4; color: #334155; } /* Resumen */
-            td:nth-child(5) { width: 100%; order: 5; margin-top: 5px; } /* Enlace (Abajo) */
+            td:nth-child(5) { width: 100%; order: 5; margin-top: 5px; } /* Enlace */
             
-            /* Hacemos que el botón de enlace ocupe todo el ancho para celular */
             .btn-link { width: 100%; box-sizing: border-box; padding: 8px 12px; }
         }
     </style>
@@ -112,8 +116,11 @@
 <body>
 
 <header>
-    <h1 style="font-size: 1.1rem; color: white; font-weight: 800; margin:0;">SEMÁFORO DE MEDIOS MUNICIPALIDAD DE LIMA</h1>
-    <div id="data-count" style="font-size: 12px; font-weight: 600; color: #cbd5e1;">Conectando...</div>
+    <div class="header-left">
+        <img src="643cae93-18fd-40de-9f6c-a08884372e18.png" alt="Logo Municipalidad de Lima" class="header-logo">
+        <h1 style="font-size: 1.1rem; color: white; font-weight: 800; margin:0;">SEMÁFORO DE MEDIOS MML</h1>
+    </div>
+    <div id="data-count" style="font-size: 12px; font-weight: 600; color: #cbd5e1; text-align:right;">Conectando...</div>
 </header>
 
 <div class="main" id="dashboard-content">
