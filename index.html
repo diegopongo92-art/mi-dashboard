@@ -14,14 +14,23 @@
         .controls { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
         label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block; }
         select, input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
+        
+        .date-controls { display: flex; gap: 5px; }
+        .date-controls input { flex: 1; min-width: 0; }
+        .btn-action { border: none; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; background: var(--accent); text-transform: uppercase; padding: 0 10px; transition: opacity 0.2s; }
+        .btn-action:hover { opacity: 0.8; }
+        .bg-gray { background: #64748b; }
+
         .table-box { background: white; border-radius: 12px; overflow-x: auto; border: 1px solid #e2e8f0; }
         table { width: 100%; border-collapse: collapse; min-width: 800px; }
         th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; border-bottom: 1px solid #eee; text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; line-height: 1.5; }
+        td { padding: 15px; border-bottom: 1px solid #e2e8f0; font-size: 13px; line-height: 1.5; transition: background 0.2s; }
+        
         .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-        .positivo { background: #dcfce7; color: #15803d; }
-        .negativo { background: #fee2e2; color: #b91c1c; }
-        .neutro { background: #fef9c3; color: #a16207; }
+        .positivo { background: #22c55e; color: white; }
+        .negativo { background: #ef4444; color: white; }
+        .neutro { background: #eab308; color: white; }
+        
         .btn-link { color: white; background: var(--accent); text-decoration: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; }
         .btn-link:hover { background: #1d4ed8; }
     </style>
@@ -30,7 +39,7 @@
 
 <header>
     <h1 style="font-size: 1.1rem; color: var(--primary); font-weight: 800; margin:0;">SEMÁFORO DE MEDIOS</h1>
-    <div id="data-count" style="font-size: 12px; font-weight: 600; color: #64748b;">Conectando a Google Sheets...</div>
+    <div id="data-count" style="font-size: 12px; font-weight: 600; color: #64748b;">Conectando...</div>
 </header>
 
 <div class="main">
@@ -41,7 +50,11 @@
         </div>
         <div>
             <label>Fecha de Publicación</label>
-            <input type="date" id="filterFecha" onchange="runFilters()">
+            <div class="date-controls">
+                <button class="btn-action" onclick="setSoloHoy()" title="Ver solo noticias de hoy">Hoy</button>
+                <button class="btn-action bg-gray" onclick="verTodo()" title="Ver todo el historial">Todo</button>
+                <input type="date" id="filterFecha" onchange="onFechaChange()">
+            </div>
         </div>
         <div>
             <label>Tono (Criterio de Imagen)</label>
@@ -78,12 +91,18 @@
 <script>
     const csv_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2khLH7C3lCFCIV3ss1U5AV4SOL922Sld2rnPhSayp39VqgtlBV8ey63dxgCbur1nHiK-6CfNKB2B-/pub?gid=817460174&single=true&output=csv';
     let allData = [];
+    
+    // Variables para manejar las fechas exactas
+    const hoyDate = new Date();
+    const hoyTime = new Date(hoyDate.getFullYear(), hoyDate.getMonth(), hoyDate.getDate()).getTime();
+    const ayerTime = hoyTime - (24 * 60 * 60 * 1000);
+    
+    let currentMode = 'recent'; // 'recent' (Hoy y ayer), 'specific' (Fecha elegida), 'all' (Todo)
 
     async function init() {
         try {
             const response = await fetch(csv_url);
             if (!response.ok) throw new Error("No se pudo conectar a Google Sheets.");
-            
             const csvText = await response.text();
 
             Papa.parse(csvText, {
@@ -117,13 +136,49 @@
                     allData.reverse(); 
 
                     generateDynamicFilters(allData);
-                    renderTable(allData);
+                    
+                    // Al cargar, obligamos a que aplique el filtro inicial (Hoy y Ayer)
+                    runFilters();
                 }
             });
-
         } catch (error) {
             document.getElementById('table-body').innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:#b91c1c;">Error: ${error.message}</td></tr>`;
         }
+    }
+
+    // Funciones de botones de Fecha
+    function setSoloHoy() {
+        const y = hoyDate.getFullYear();
+        const m = String(hoyDate.getMonth() + 1).padStart(2, '0');
+        const d = String(hoyDate.getDate()).padStart(2, '0');
+        document.getElementById('filterFecha').value = `${y}-${m}-${d}`;
+        currentMode = 'specific';
+        runFilters();
+    }
+
+    function verTodo() {
+        document.getElementById('filterFecha').value = '';
+        currentMode = 'all';
+        runFilters();
+    }
+
+    function onFechaChange() {
+        const val = document.getElementById('filterFecha').value;
+        currentMode = val ? 'specific' : 'all'; 
+        runFilters();
+    }
+
+    // Convertidor de fechas de Excel a tiempo real matemático
+    function parseExcelDate(dateStr) {
+        if (!dateStr) return null;
+        const clean = dateStr.split(' ')[0].trim();
+        const p = clean.split('/');
+        if(p.length !== 3) return null;
+        const d = parseInt(p[0], 10);
+        const m = parseInt(p[1], 10) - 1;
+        let y = parseInt(p[2], 10);
+        if (y < 100) y += 2000;
+        return new Date(y, m, d).getTime();
     }
 
     function generateDynamicFilters(data) {
@@ -143,27 +198,43 @@
         tbody.innerHTML = '';
         
         const displayData = data.slice(0, 300); 
-        countBox.innerText = `Mostrando ${displayData.length} de ${data.length} noticias`;
+        
+        let textoConteo = currentMode === 'recent' ? "Mostrando Solo Hoy y Ayer" : 
+                          currentMode === 'specific' ? "Mostrando Fecha Seleccionada" : "Mostrando Histórico";
+        
+        countBox.innerText = `${textoConteo} (${displayData.length} noticias)`;
 
         if (displayData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#64748b;">No hay resultados con estos filtros.</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b;">No hay noticias para mostrar con estos filtros.<br><br><button onclick="verTodo()" class="btn-action bg-gray" style="padding:10px 15px;">Ver todo el historial</button></td></tr>`;
             return;
         }
 
         displayData.forEach(row => {
             const tLow = row.tono.toLowerCase();
             let tonoClass = 'neutro';
-            if (tLow.includes('pos')) tonoClass = 'positivo';
-            if (tLow.includes('neg')) tonoClass = 'negativo';
+            let rowStyle = '';
+            let titularStyle = '';
+
+            // Lógica de colores según tus instrucciones
+            if (tLow.includes('pos')) {
+                tonoClass = 'positivo';
+                titularStyle = 'background-color: #dcfce7;'; // Solo celda Titular en verde
+            } else if (tLow.includes('neg')) {
+                tonoClass = 'negativo';
+                rowStyle = 'background-color: #fee2e2;'; // Fila completa roja
+            } else {
+                tonoClass = 'neutro';
+                rowStyle = 'background-color: #fef9c3;'; // Fila completa amarilla
+            }
             
-            const linkHTML = row.link.includes('http') ? `<a href="${row.link}" target="_blank" class="btn-link">Ver nota</a>` : '<span style="color:#94a3b8; font-size:11px;">N/A</span>';
+            const linkHTML = row.link.includes('http') ? `<a href="${row.link}" target="_blank" class="btn-link">Abrir</a>` : '<span style="color:#94a3b8; font-size:11px;">N/A</span>';
 
             tbody.innerHTML += `
-                <tr>
+                <tr style="${rowStyle}">
                     <td style="white-space:nowrap; font-weight:600; color:#64748b;">${row.fecha}</td>
-                    <td>
-                        <div style="font-weight:700; margin-bottom:5px; color:#0f172a;">${row.titular}</div>
-                        <div style="font-size:10px; color:var(--accent); font-weight:700; text-transform:uppercase;">${row.medio}</div>
+                    <td style="${titularStyle}">
+                        <div style="font-weight:800; margin-bottom:5px; color:#0f172a;">${row.titular}</div>
+                        <div style="font-size:10px; color:var(--accent); font-weight:800; text-transform:uppercase;">${row.medio}</div>
                     </td>
                     <td><span class="badge ${tonoClass}">${row.tono}</span></td>
                     <td style="font-size:12px; color:#475569;">${row.resumen}</td>
@@ -181,29 +252,19 @@
 
         const filtered = allData.filter(row => {
             const txt = (row.titular + " " + row.medio + " " + row.resumen).toLowerCase();
+            const rowTime = parseExcelDate(row.fecha);
             
-            // --- NUEVO SISTEMA MATEMÁTICO DE FECHAS ---
             let matchFecha = true;
-            if (fechaInput) {
-                // El calendario entrega la fecha así: 2026-01-04
+
+            if (currentMode === 'specific' && fechaInput) {
                 const [yInput, mInput, dInput] = fechaInput.split('-');
-                const dNum = parseInt(dInput, 10).toString(); // Quita el cero a la izquierda (ej. "04" -> "4")
-                const mNum = parseInt(mInput, 10).toString(); 
-                
-                // Limpiamos la fecha de Excel por si tiene horas escondidas ("4/12/2025 10:30")
-                const fechaExcelLimpia = row.fecha.split(' ')[0].trim();
-                const partesExcel = fechaExcelLimpia.split('/');
-                
-                if (partesExcel.length === 3) {
-                    const exD = parseInt(partesExcel[0], 10).toString();
-                    const exM = parseInt(partesExcel[1], 10).toString();
-                    const exY = partesExcel[2];
-                    
-                    // Aquí exigimos que TODO coincida (Día exacto Y Mes exacto Y Año exacto)
-                    matchFecha = (exD === dNum && exM === mNum && (exY === yInput || exY === yInput.slice(-2)));
-                } else {
-                    matchFecha = false; // Si la fecha en Excel no tiene formato válido, la ocultamos en este filtro
-                }
+                const targetTime = new Date(parseInt(yInput), parseInt(mInput)-1, parseInt(dInput)).getTime();
+                matchFecha = (rowTime === targetTime);
+            } else if (currentMode === 'recent') {
+                // Modo predeterminado: solo coinciden si es hoy o ayer
+                matchFecha = (rowTime === hoyTime || rowTime === ayerTime);
+            } else if (currentMode === 'all') {
+                matchFecha = true; // Deja pasar todas las fechas
             }
 
             const matchSearch = search === "" || txt.includes(search);
@@ -212,6 +273,7 @@
 
             return matchSearch && matchTono && matchMedio && matchFecha;
         });
+        
         renderTable(filtered);
     }
 
