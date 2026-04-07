@@ -2,88 +2,216 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Semaforo MML | Diagnóstico</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semaforo MML | Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; background: #f1f5f9; padding: 20px; }
-        .box { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        #debug-log { background: #0f172a; color: #10b981; font-family: monospace; padding: 15px; border-radius: 8px; white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
-        .error-text { color: #ef4444; font-weight: bold; }
-        .info-text { color: #38bdf8; }
+        :root { --primary: #003366; --bg: #f1f5f9; --accent: #2563eb; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: #1e293b; }
+        header { background: white; padding: 15px 5%; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .main { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
+        .controls { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+        label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
+        .table-box { background: white; border-radius: 12px; overflow-x: auto; border: 1px solid #e2e8f0; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; border-bottom: 1px solid #eee; text-transform: uppercase; }
+        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; line-height: 1.5; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .positivo { background: #dcfce7; color: #15803d; }
+        .negativo { background: #fee2e2; color: #b91c1c; }
+        .neutro { background: #fef9c3; color: #a16207; }
+        .btn-link { color: white; background: var(--accent); text-decoration: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; }
+        .btn-link:hover { background: #1d4ed8; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h2 style="margin:0; color:#0f172a;">Modo Diagnóstico Activado 🛠️</h2>
-    <p style="color:#64748b;">Estamos forzando al sistema a que nos diga qué está fallando exactamente con tu Excel.</p>
+<header>
+    <h1 style="font-size: 1.1rem; color: var(--primary); font-weight: 800; margin:0;">SEMÁFORO DE MEDIOS</h1>
+    <div id="data-count" style="font-size: 12px; font-weight: 600; color: #64748b;">Conectando a Google Sheets...</div>
+</header>
+
+<div class="main">
+    <div class="controls">
+        <div>
+            <label>Buscar (Palabra clave)</label>
+            <input type="text" id="search" placeholder="Ej. Alcalde, Obras..." onkeyup="runFilters()">
+        </div>
+        <div>
+            <label>Fecha de Publicación</label>
+            <input type="date" id="filterFecha" onchange="runFilters()">
+        </div>
+        <div>
+            <label>Tono (Criterio de Imagen)</label>
+            <select id="filterTono" onchange="runFilters()">
+                <option value="">Todos</option>
+            </select>
+        </div>
+        <div>
+            <label>Nombre del Medio</label>
+            <select id="filterMedio" onchange="runFilters()">
+                <option value="">Todos</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-box">
+        <table>
+            <thead>
+                <tr>
+                    <th width="12%">Fecha</th>
+                    <th width="30%">Titular / Medio</th>
+                    <th width="10%">Tono</th>
+                    <th width="38%">Resumen</th>
+                    <th width="10%">Enlace</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b; font-weight:bold;">Sincronizando datos, un momento...</td></tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
-<div class="box" id="debug-log">⏳ Iniciando escáner...<br></div>
-
 <script>
-    const logBox = document.getElementById('debug-log');
-    function log(msg, type = 'normal') {
-        let span = `✅ ${msg}<br>`;
-        if (type === 'error') span = `<span class="error-text">❌ ${msg}</span><br>`;
-        if (type === 'info') span = `<span class="info-text">👉 ${msg}</span><br>`;
-        logBox.innerHTML += span;
-    }
-
-    // El atrapamoscas: captura CUALQUIER error de la página
-    window.onerror = function(message, source, lineno, colno, error) {
-        log(`ERROR CRÍTICO DEL NAVEGADOR: ${message} (En la línea: ${lineno})`, 'error');
-        return true;
-    };
-
     const csv_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2khLH7C3lCFCIV3ss1U5AV4SOL922Sld2rnPhSayp39VqgtlBV8ey63dxgCbur1nHiK-6CfNKB2B-/pub?gid=817460174&single=true&output=csv';
+    let allData = [];
 
-    async function testConnection() {
-        log("Paso 1: Intentando conectar con tu enlace de Google Sheets...", 'info');
+    async function init() {
         try {
-            const res = await fetch(csv_url);
-            log(`Paso 2: Google respondió con código: ${res.status} ${res.statusText}`);
+            const response = await fetch(csv_url);
+            if (!response.ok) throw new Error("No se pudo conectar a Google Sheets.");
             
-            if (!res.ok) {
-                log("Google bloqueó el acceso. Tu documento no está público o el enlace está mal.", 'error');
-                return;
-            }
+            const csvText = await response.text();
 
-            const text = await res.text();
-            log(`Paso 3: Se descargaron los datos. Tamaño: ${text.length} caracteres.`);
-            
-            if (text.length < 50) {
-                log(`¡Alerta! El archivo está casi vacío. Esto es lo único que tiene adentro: ${text}`, 'error');
-                return;
-            }
-
-            log("Paso 4: Analizando columnas y filas...", 'info');
-            Papa.parse(text, {
+            Papa.parse(csvText, {
                 header: true,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    log(`Paso 5: Se encontraron ${results.data.length} filas de datos.`);
-                    if(results.data.length > 0) {
-                        const headers = Object.keys(results.data[0]);
-                        log(`Paso 6: Estas son las columnas que detecté: [ ${headers.join(' | ')} ]`, 'info');
-                        log(`Paso 7: Así se ve tu primera fila por dentro:`);
-                        logBox.innerHTML += `<span style="color:#fcd34d;">${JSON.stringify(results.data[0])}</span><br>`;
-                        log("🚀 Si llegaste hasta aquí sin letras rojas, el enlace funciona perfecto y el problema es el nombre de tus columnas.", 'info');
-                    } else {
-                        log("¡Error! Leí el archivo pero todas las filas estaban vacías.", 'error');
-                    }
+                skipEmptyLines: 'greedy', 
+                transformHeader: function(h) {
+                    if (!h || h.trim() === "") return "VACIO";
+                    // Quitamos tildes y lo pasamos a mayúsculas para que sea fácil de encontrar
+                    return h.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 },
-                error: function(err) {
-                    log(`Error interno al leer el Excel: ${err.message}`, 'error');
+                complete: function(results) {
+                    const headers = Object.keys(results.data[0]);
+
+                    // AHORA SÍ: Mapeo exacto basado en tu Modo Diagnóstico
+                    const cFecha = headers.find(h => h.includes('FECHA DE PUBLICACION'));
+                    const cTitular = headers.find(h => h.includes('TITULAR'));
+                    const cMedio = headers.find(h => h.includes('NOMBRE DEL MEDIO'));
+                    const cTono = headers.find(h => h.includes('CRITERIO DE IMAGEN'));
+                    const cResumen = headers.find(h => h.includes('RESUMEN'));
+                    const cLink = headers.find(h => h.includes('LINK'));
+
+                    // Procesar las más de 3000 filas
+                    allData = results.data.map(row => {
+                        return {
+                            fecha: (row[cFecha] || '').trim(),
+                            titular: (row[cTitular] || '').trim(),
+                            medio: (row[cMedio] || '').trim(),
+                            tono: (row[cTono] || '').trim(),
+                            resumen: (row[cResumen] || '').trim(),
+                            link: (row[cLink] || '#').trim()
+                        };
+                    }).filter(row => row.titular !== ""); // Solo mostrar si hay un titular
+
+                    // Ordenar por fecha (opcional, asumiendo que quieres ver lo más reciente)
+                    allData.reverse(); 
+
+                    generateDynamicFilters(allData);
+                    renderTable(allData);
                 }
             });
 
-        } catch(e) {
-            log(`Fallo total de conexión: ${e.message}`, 'error');
+        } catch (error) {
+            document.getElementById('table-body').innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:#b91c1c;">Error: ${error.message}</td></tr>`;
         }
     }
 
-    testConnection();
+    function generateDynamicFilters(data) {
+        const tonos = [...new Set(data.map(row => row.tono).filter(t => t !== ""))].sort();
+        const medios = [...new Set(data.map(row => row.medio).filter(m => m !== ""))].sort();
+
+        const selectTono = document.getElementById('filterTono');
+        const selectMedio = document.getElementById('filterMedio');
+
+        tonos.forEach(t => { selectTono.appendChild(new Option(t, t)); });
+        medios.forEach(m => { selectMedio.appendChild(new Option(m, m)); });
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('table-body');
+        const countBox = document.getElementById('data-count');
+        tbody.innerHTML = '';
+        
+        // Limitar a los primeros 300 resultados para que el navegador no se ponga lento con 3000 filas a la vez
+        const displayData = data.slice(0, 300); 
+        countBox.innerText = `Mostrando ${displayData.length} de ${data.length} noticias`;
+
+        if (displayData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#64748b;">No hay resultados con estos filtros.</td></tr>';
+            return;
+        }
+
+        displayData.forEach(row => {
+            const tLow = row.tono.toLowerCase();
+            let tonoClass = 'neutro';
+            if (tLow.includes('pos')) tonoClass = 'positivo';
+            if (tLow.includes('neg')) tonoClass = 'negativo';
+            
+            const linkHTML = row.link.includes('http') ? `<a href="${row.link}" target="_blank" class="btn-link">Ver nota</a>` : '<span style="color:#94a3b8; font-size:11px;">N/A</span>';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td style="white-space:nowrap; font-weight:600; color:#64748b;">${row.fecha}</td>
+                    <td>
+                        <div style="font-weight:700; margin-bottom:5px; color:#0f172a;">${row.titular}</div>
+                        <div style="font-size:10px; color:var(--accent); font-weight:700; text-transform:uppercase;">${row.medio}</div>
+                    </td>
+                    <td><span class="badge ${tonoClass}">${row.tono}</span></td>
+                    <td style="font-size:12px; color:#475569;">${row.resumen}</td>
+                    <td style="text-align:center;">${linkHTML}</td>
+                </tr>
+            `;
+        });
+    }
+
+    function runFilters() {
+        const search = document.getElementById('search').value.toLowerCase();
+        const tono = document.getElementById('filterTono').value;
+        const medio = document.getElementById('filterMedio').value;
+        const fechaInput = document.getElementById('filterFecha').value; 
+
+        const filtered = allData.filter(row => {
+            const txt = (row.titular + " " + row.medio + " " + row.resumen).toLowerCase();
+            const fExcel = row.fecha;
+            
+            let matchFecha = true;
+            if (fechaInput) {
+                const [y, m, d] = fechaInput.split('-');
+                const dNum = parseInt(d, 10).toString(); 
+                const mNum = parseInt(m, 10).toString();
+                
+                const f1 = `${d}/${m}/${y}`; // 06/01/2026
+                const f2 = `${dNum}/${mNum}/${y}`; // 6/1/2026
+                const f3 = `${d}/${m}`; // 06/01
+                const f4 = `${dNum}/${mNum}`; // 6/1
+                
+                matchFecha = fExcel.includes(f1) || fExcel.includes(f2) || fExcel.includes(f3) || fExcel.includes(f4);
+            }
+
+            const matchSearch = search === "" || txt.includes(search);
+            const matchTono = tono === "" || row.tono === tono;
+            const matchMedio = medio === "" || row.medio === medio;
+
+            return matchSearch && matchTono && matchMedio && matchFecha;
+        });
+        renderTable(filtered);
+    }
+
+    init();
 </script>
 </body>
 </html>
