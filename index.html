@@ -36,10 +36,10 @@
     <div class="controls">
         <div>
             <label>Buscar</label>
-            <input type="text" id="search" placeholder="Titular o palabra..." onkeyup="runFilters()">
+            <input type="text" id="search" placeholder="Escribe aquí..." onkeyup="runFilters()">
         </div>
         <div>
-            <label>Filtrar por Fecha</label>
+            <label>Fecha</label>
             <input type="date" id="filterFecha" onchange="runFilters()">
         </div>
         <div>
@@ -60,15 +60,15 @@
         <table>
             <thead>
                 <tr>
-                    <th>Fecha</th>
-                    <th>Titular / Medio</th>
-                    <th>Tono</th>
-                    <th>Resumen</th>
-                    <th>Link</th>
+                    <th width="12%">Fecha</th>
+                    <th width="35%">Titular / Medio</th>
+                    <th width="10%">Tono</th>
+                    <th width="33%">Resumen</th>
+                    <th width="10%">Link</th>
                 </tr>
             </thead>
             <tbody id="table-body">
-                <tr><td colspan="5" style="text-align:center; padding:40px;">Leyendo Google Sheets...</td></tr>
+                <tr><td colspan="5" style="text-align:center; padding:40px; color:#64748b;">Leyendo Google Sheets...</td></tr>
             </tbody>
         </table>
     </div>
@@ -83,66 +83,76 @@
             download: true,
             header: true,
             skipEmptyLines: true,
-            // AQUÍ ESTÁ LA MAGIA: Limpiamos los títulos de las columnas del Excel
-            transformHeader: function(header) {
-                return header.trim().toUpperCase();
+            // Quitamos tildes, espacios raros y ponemos todo en mayúsculas para los títulos
+            transformHeader: function(h) {
+                return h.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             },
             complete: function(results) {
-                // Buscamos si existe la columna, sea como sea que se llame
-                allData = results.data.filter(row => {
-                    const titular = row['NOMBRE Y TITULAR'] || row['TITULAR'] || '';
-                    return titular.trim() !== "";
-                });
+                try { // SISTEMA ANTI-CONGELAMIENTO INICIA AQUÍ
+                    if (!results || !results.data || results.data.length === 0) {
+                        throw new Error("El archivo se leyó pero está vacío.");
+                    }
 
-                // Si no encontró nada, MOSTRAMOS EL ERROR para saber por qué
-                if (allData.length === 0) {
-                    const columnasEncontradas = Object.keys(results.data[0] || {}).join(', ');
+                    const headers = Object.keys(results.data[0]);
+                    
+                    // AUTO-DETECTAR COLUMNAS (Busca palabras clave, si no, agarra por posición)
+                    const cTitular = headers.find(h => h.includes('TITULAR') || h.includes('NOMBRE')) || headers[1];
+                    const cMedio = headers.find(h => h.includes('MEDIO') || h.includes('TIPO')) || headers[2] || '';
+                    const cTono = headers.find(h => h.includes('TONO')) || headers[3] || '';
+                    const cFecha = headers.find(h => h.includes('FECHA')) || headers[0] || '';
+                    const cResumen = headers.find(h => h.includes('RESUMEN')) || headers[4] || '';
+                    const cLink = headers.find(h => h.includes('LINK') || h.includes('URL')) || headers[5] || '';
+
+                    // ESTANDARIZAR DATOS PARA QUE EL RESTO DEL CÓDIGO NO FALLE NUNCA
+                    allData = results.data.map(row => {
+                        return {
+                            fecha: (row[cFecha] || '').trim(),
+                            titular: (row[cTitular] || '').trim(),
+                            medio: (row[cMedio] || '').trim(),
+                            tono: (row[cTono] || 'Neutro').trim(),
+                            resumen: (row[cResumen] || '').trim(),
+                            link: (row[cLink] || '#').trim()
+                        };
+                    }).filter(row => row.titular !== ""); // Ignora filas donde el titular esté vacío
+
+                    if (allData.length === 0) {
+                        throw new Error(`Encontré las columnas (${headers.join(', ')}), pero no hay filas llenas con datos.`);
+                    }
+
+                    generateDynamicFilters(allData);
+                    document.getElementById('filterFecha').value = ""; // Empieza sin filtro de fecha
+                    renderTable(allData);
+
+                } catch (error) {
+                    // SI ALGO FALLA, TE LO MUESTRA AQUÍ
                     document.getElementById('table-body').innerHTML = `
                         <tr><td colspan="5" style="text-align:center; padding:40px; color:#b91c1c; background:#fee2e2;">
-                            <b>¡Atención!</b> No encontré noticias. <br><br>
-                            El código busca la columna "NOMBRE Y TITULAR", pero tu Excel tiene estas columnas:<br>
-                            <b>${columnasEncontradas}</b><br><br>
-                            Asegúrate de que los títulos de tu Excel estén en la primera fila.
+                            <b>¡Ups! Hubo un problema al procesar los datos:</b><br><br>${error.message}
                         </td></tr>`;
-                    document.getElementById('data-count').innerText = "Error de lectura";
-                    return;
+                    document.getElementById('data-count').innerText = "Error";
                 }
-
-                generateDynamicFilters(allData);
-                
-                // Limpiamos el selector de fecha por defecto para mostrar TODO al abrir
-                document.getElementById('filterFecha').value = "";
-                renderTable(allData);
             },
             error: function(err) {
-                document.getElementById('table-body').innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Error de red: ${err}</td></tr>`;
+                document.getElementById('table-body').innerHTML = `
+                    <tr><td colspan="5" style="text-align:center; padding:40px; color:#b91c1c; background:#fee2e2;">
+                        <b>Error de conexión:</b> No me pude conectar a tu Google Sheets. Revisa el link.
+                    </td></tr>`;
             }
         });
     }
 
     function generateDynamicFilters(data) {
-        // Extraemos valores únicos y quitamos vacíos
-        const tonos = [...new Set(data.map(row => (row.TONO || '').trim()).filter(t => t !== ""))];
-        const medios = [...new Set(data.map(row => (row['TIPO DE MEDIO'] || '').trim()).filter(m => m !== ""))];
+        const tonos = [...new Set(data.map(row => row.tono).filter(t => t !== ""))];
+        const medios = [...new Set(data.map(row => row.medio).filter(m => m !== ""))];
 
         const selectTono = document.getElementById('filterTono');
         const selectMedio = document.getElementById('filterMedio');
 
-        // Limpiamos las opciones previas (solo dejamos "Todos")
         selectTono.innerHTML = '<option value="">Todos</option>';
         selectMedio.innerHTML = '<option value="">Todos</option>';
 
-        tonos.forEach(t => {
-            let opt = document.createElement('option');
-            opt.value = t; opt.innerText = t;
-            selectTono.appendChild(opt);
-        });
-
-        medios.forEach(m => {
-            let opt = document.createElement('option');
-            opt.value = m; opt.innerText = m;
-            selectMedio.appendChild(opt);
-        });
+        tonos.forEach(t => { selectTono.appendChild(new Option(t, t)); });
+        medios.forEach(m => { selectMedio.appendChild(new Option(m, m)); });
     }
 
     function renderTable(data) {
@@ -152,27 +162,24 @@
         countBox.innerText = `${data.length} registros cargados`;
 
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#64748b;">No hay noticias para los filtros seleccionados.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#64748b;">No hay resultados para esta búsqueda.</td></tr>';
             return;
         }
 
         data.forEach(row => {
-            const titular = row['NOMBRE Y TITULAR'] || row['TITULAR'] || '';
-            const tono = (row.TONO || '').trim();
-            const tLow = tono.toLowerCase();
-            const tonoClass = tLow.includes('pos') ? 'positivo' : tLow.includes('neg') ? 'negativo' : tLow.includes('neu') ? 'neutro' : '';
-            const link = row.LINK || '#';
+            const tLow = row.tono.toLowerCase();
+            const tonoClass = tLow.includes('pos') ? 'positivo' : tLow.includes('neg') ? 'negativo' : 'neutro';
             
             tbody.innerHTML += `
                 <tr>
-                    <td style="white-space:nowrap; font-weight:600; color:#64748b;">${row.FECHA || ''}</td>
+                    <td style="white-space:nowrap; font-weight:600; color:#64748b;">${row.fecha}</td>
                     <td>
-                        <div style="font-weight:700; margin-bottom:3px; color:#0f172a;">${titular}</div>
-                        <div style="font-size:10px; color:var(--accent); font-weight:700; text-transform:uppercase;">${row['TIPO DE MEDIO'] || ''}</div>
+                        <div style="font-weight:700; margin-bottom:3px; color:#0f172a;">${row.titular}</div>
+                        <div style="font-size:10px; color:var(--accent); font-weight:700; text-transform:uppercase;">${row.medio}</div>
                     </td>
-                    <td><span class="badge ${tonoClass}">${tono}</span></td>
-                    <td style="font-size:12px; color:#475569; max-width:250px;">${row.RESUMEN || ''}</td>
-                    <td><a href="${link}" target="_blank" class="btn-link">LINK</a></td>
+                    <td><span class="badge ${tonoClass}">${row.tono}</span></td>
+                    <td style="font-size:12px; color:#475569; max-width:250px;">${row.resumen}</td>
+                    <td><a href="${row.link}" target="_blank" class="btn-link">ABRIR</a></td>
                 </tr>
             `;
         });
@@ -182,21 +189,18 @@
         const search = document.getElementById('search').value.toLowerCase();
         const tono = document.getElementById('filterTono').value;
         const medio = document.getElementById('filterMedio').value;
-        const fechaInput = document.getElementById('filterFecha').value; // Formato YYYY-MM-DD
+        const fechaInput = document.getElementById('filterFecha').value; 
 
         const filtered = allData.filter(row => {
-            const titularFila = row['NOMBRE Y TITULAR'] || row['TITULAR'] || '';
-            const txt = (titularFila + (row['TIPO DE MEDIO'] || '') + (row.RESUMEN || '')).toLowerCase();
-            const fExcel = (row.FECHA || '').toLowerCase();
+            const txt = (row.titular + row.medio + row.resumen).toLowerCase();
+            const fExcel = row.fecha.toLowerCase();
             
-            // Lógica súper flexible para la fecha
             let matchFecha = true;
             if (fechaInput) {
                 const [y, m, d] = fechaInput.split('-');
-                const dNum = parseInt(d, 10).toString(); // Quita el cero inicial (ej. 05 -> 5)
+                const dNum = parseInt(d, 10).toString(); 
                 const mNum = parseInt(m, 10).toString();
                 
-                // Comprueba todos los formatos en los que podrías haber escrito la fecha en Excel
                 const f1 = `${d}/${m}/${y}`; // 25/02/2026
                 const f2 = `${dNum}/${mNum}/${y}`; // 25/2/2026
                 const f3 = `${d}/${m}`; // 25/02
@@ -206,8 +210,8 @@
             }
 
             const matchSearch = txt.includes(search);
-            const matchTono = tono === "" || (row.TONO || '').trim() === tono;
-            const matchMedio = medio === "" || (row['TIPO DE MEDIO'] || '').trim() === medio;
+            const matchTono = tono === "" || row.tono === tono;
+            const matchMedio = medio === "" || row.medio === medio;
 
             return matchSearch && matchTono && matchMedio && matchFecha;
         });
