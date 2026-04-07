@@ -91,13 +91,11 @@
                 skipEmptyLines: 'greedy', 
                 transformHeader: function(h) {
                     if (!h || h.trim() === "") return "VACIO";
-                    // Quitamos tildes y lo pasamos a mayúsculas para que sea fácil de encontrar
                     return h.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 },
                 complete: function(results) {
                     const headers = Object.keys(results.data[0]);
 
-                    // AHORA SÍ: Mapeo exacto basado en tu Modo Diagnóstico
                     const cFecha = headers.find(h => h.includes('FECHA DE PUBLICACION'));
                     const cTitular = headers.find(h => h.includes('TITULAR'));
                     const cMedio = headers.find(h => h.includes('NOMBRE DEL MEDIO'));
@@ -105,7 +103,6 @@
                     const cResumen = headers.find(h => h.includes('RESUMEN'));
                     const cLink = headers.find(h => h.includes('LINK'));
 
-                    // Procesar las más de 3000 filas
                     allData = results.data.map(row => {
                         return {
                             fecha: (row[cFecha] || '').trim(),
@@ -115,9 +112,8 @@
                             resumen: (row[cResumen] || '').trim(),
                             link: (row[cLink] || '#').trim()
                         };
-                    }).filter(row => row.titular !== ""); // Solo mostrar si hay un titular
+                    }).filter(row => row.titular !== ""); 
 
-                    // Ordenar por fecha (opcional, asumiendo que quieres ver lo más reciente)
                     allData.reverse(); 
 
                     generateDynamicFilters(allData);
@@ -146,7 +142,6 @@
         const countBox = document.getElementById('data-count');
         tbody.innerHTML = '';
         
-        // Limitar a los primeros 300 resultados para que el navegador no se ponga lento con 3000 filas a la vez
         const displayData = data.slice(0, 300); 
         countBox.innerText = `Mostrando ${displayData.length} de ${data.length} noticias`;
 
@@ -186,20 +181,29 @@
 
         const filtered = allData.filter(row => {
             const txt = (row.titular + " " + row.medio + " " + row.resumen).toLowerCase();
-            const fExcel = row.fecha;
             
+            // --- NUEVO SISTEMA MATEMÁTICO DE FECHAS ---
             let matchFecha = true;
             if (fechaInput) {
-                const [y, m, d] = fechaInput.split('-');
-                const dNum = parseInt(d, 10).toString(); 
-                const mNum = parseInt(m, 10).toString();
+                // El calendario entrega la fecha así: 2026-01-04
+                const [yInput, mInput, dInput] = fechaInput.split('-');
+                const dNum = parseInt(dInput, 10).toString(); // Quita el cero a la izquierda (ej. "04" -> "4")
+                const mNum = parseInt(mInput, 10).toString(); 
                 
-                const f1 = `${d}/${m}/${y}`; // 06/01/2026
-                const f2 = `${dNum}/${mNum}/${y}`; // 6/1/2026
-                const f3 = `${d}/${m}`; // 06/01
-                const f4 = `${dNum}/${mNum}`; // 6/1
+                // Limpiamos la fecha de Excel por si tiene horas escondidas ("4/12/2025 10:30")
+                const fechaExcelLimpia = row.fecha.split(' ')[0].trim();
+                const partesExcel = fechaExcelLimpia.split('/');
                 
-                matchFecha = fExcel.includes(f1) || fExcel.includes(f2) || fExcel.includes(f3) || fExcel.includes(f4);
+                if (partesExcel.length === 3) {
+                    const exD = parseInt(partesExcel[0], 10).toString();
+                    const exM = parseInt(partesExcel[1], 10).toString();
+                    const exY = partesExcel[2];
+                    
+                    // Aquí exigimos que TODO coincida (Día exacto Y Mes exacto Y Año exacto)
+                    matchFecha = (exD === dNum && exM === mNum && (exY === yInput || exY === yInput.slice(-2)));
+                } else {
+                    matchFecha = false; // Si la fecha en Excel no tiene formato válido, la ocultamos en este filtro
+                }
             }
 
             const matchSearch = search === "" || txt.includes(search);
