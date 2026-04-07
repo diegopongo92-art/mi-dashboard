@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semaforo MML | Dashboard Dinámico</title>
+    <title>Semaforo MML | Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -29,14 +29,14 @@
 
 <header>
     <h1 style="font-size: 1.1rem; color: var(--primary); font-weight: 800; margin:0;">SEMÁFORO DE MEDIOS</h1>
-    <div id="data-count" style="font-size: 12px; font-weight: 600; color: #64748b;">Conectando...</div>
+    <div id="data-count" style="font-size: 12px; font-weight: 600; color: #64748b;">Conectando a Google Sheets...</div>
 </header>
 
 <div class="main">
     <div class="controls">
         <div>
-            <label>Buscar</label>
-            <input type="text" id="search" placeholder="Escribe aquí..." onkeyup="runFilters()">
+            <label>Buscar (Palabra clave)</label>
+            <input type="text" id="search" placeholder="Ej. Alcalde, Obras..." onkeyup="runFilters()">
         </div>
         <div>
             <label>Fecha</label>
@@ -68,13 +68,14 @@
                 </tr>
             </thead>
             <tbody id="table-body">
-                <tr><td colspan="5" style="text-align:center; padding:40px; color:#64748b;">Leyendo Google Sheets...</td></tr>
+                <tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b; font-weight:bold;">Sincronizando datos, un momento...</td></tr>
             </tbody>
         </table>
     </div>
 </div>
 
 <script>
+    // AQUÍ ESTÁ TU ENLACE EXACTO
     const csv_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2khLH7C3lCFCIV3ss1U5AV4SOL922Sld2rnPhSayp39VqgtlBV8ey63dxgCbur1nHiK-6CfNKB2B-/pub?gid=817460174&single=true&output=csv';
     let allData = [];
 
@@ -83,27 +84,27 @@
             download: true,
             header: true,
             skipEmptyLines: true,
-            // Quitamos tildes, espacios raros y ponemos todo en mayúsculas para los títulos
+            // Limpia los títulos de las columnas del Excel (quita tildes y espacios extras)
             transformHeader: function(h) {
                 return h.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             },
             complete: function(results) {
-                try { // SISTEMA ANTI-CONGELAMIENTO INICIA AQUÍ
+                try {
                     if (!results || !results.data || results.data.length === 0) {
-                        throw new Error("El archivo se leyó pero está vacío.");
+                        throw new Error("Se conectó a Google Sheets, pero el archivo parece estar vacío.");
                     }
 
                     const headers = Object.keys(results.data[0]);
-                    
-                    // AUTO-DETECTAR COLUMNAS (Busca palabras clave, si no, agarra por posición)
-                    const cTitular = headers.find(h => h.includes('TITULAR') || h.includes('NOMBRE')) || headers[1];
-                    const cMedio = headers.find(h => h.includes('MEDIO') || h.includes('TIPO')) || headers[2] || '';
-                    const cTono = headers.find(h => h.includes('TONO')) || headers[3] || '';
-                    const cFecha = headers.find(h => h.includes('FECHA')) || headers[0] || '';
-                    const cResumen = headers.find(h => h.includes('RESUMEN')) || headers[4] || '';
-                    const cLink = headers.find(h => h.includes('LINK') || h.includes('URL')) || headers[5] || '';
 
-                    // ESTANDARIZAR DATOS PARA QUE EL RESTO DEL CÓDIGO NO FALLE NUNCA
+                    // Escáner inteligente de columnas (encuentra las columnas aunque les cambies un poco el nombre)
+                    const cTitular = headers.find(h => h.includes('TITULAR') || h.includes('NOMBRE')) || headers[1];
+                    const cMedio = headers.find(h => h.includes('MEDIO') || h.includes('TIPO')) || headers[2];
+                    const cTono = headers.find(h => h.includes('TONO')) || headers[5] || headers[3];
+                    const cFecha = headers.find(h => h.includes('FECHA')) || headers[0];
+                    const cResumen = headers.find(h => h.includes('RESUMEN')) || headers[4];
+                    const cLink = headers.find(h => h.includes('LINK') || h.includes('URL') || h.includes('NOTICIA')) || headers[6] || headers[7];
+
+                    // Formatear los datos limpios
                     allData = results.data.map(row => {
                         return {
                             fecha: (row[cFecha] || '').trim(),
@@ -113,21 +114,20 @@
                             resumen: (row[cResumen] || '').trim(),
                             link: (row[cLink] || '#').trim()
                         };
-                    }).filter(row => row.titular !== ""); // Ignora filas donde el titular esté vacío
+                    }).filter(row => row.titular !== ""); // Si la fila no tiene titular, no la muestra
 
                     if (allData.length === 0) {
-                        throw new Error(`Encontré las columnas (${headers.join(', ')}), pero no hay filas llenas con datos.`);
+                        throw new Error("Me conecté a tu Excel, pero no encontré ninguna fila con un Titular escrito.");
                     }
 
+                    // Llenar los filtros y la tabla
                     generateDynamicFilters(allData);
-                    document.getElementById('filterFecha').value = ""; // Empieza sin filtro de fecha
                     renderTable(allData);
 
                 } catch (error) {
-                    // SI ALGO FALLA, TE LO MUESTRA AQUÍ
                     document.getElementById('table-body').innerHTML = `
                         <tr><td colspan="5" style="text-align:center; padding:40px; color:#b91c1c; background:#fee2e2;">
-                            <b>¡Ups! Hubo un problema al procesar los datos:</b><br><br>${error.message}
+                            <b>Hubo un problema procesando tus datos:</b><br><br>${error.message}
                         </td></tr>`;
                     document.getElementById('data-count').innerText = "Error";
                 }
@@ -135,12 +135,13 @@
             error: function(err) {
                 document.getElementById('table-body').innerHTML = `
                     <tr><td colspan="5" style="text-align:center; padding:40px; color:#b91c1c; background:#fee2e2;">
-                        <b>Error de conexión:</b> No me pude conectar a tu Google Sheets. Revisa el link.
+                        <b>No se pudo leer el archivo.</b> Asegúrate de que el documento esté publicado correctamente.
                     </td></tr>`;
             }
         });
     }
 
+    // Crea los filtros basándose en las palabras exactas que usaste en tu Excel
     function generateDynamicFilters(data) {
         const tonos = [...new Set(data.map(row => row.tono).filter(t => t !== ""))];
         const medios = [...new Set(data.map(row => row.medio).filter(m => m !== ""))];
@@ -155,14 +156,15 @@
         medios.forEach(m => { selectMedio.appendChild(new Option(m, m)); });
     }
 
+    // Dibuja la tabla
     function renderTable(data) {
         const tbody = document.getElementById('table-body');
         const countBox = document.getElementById('data-count');
         tbody.innerHTML = '';
-        countBox.innerText = `${data.length} registros cargados`;
+        countBox.innerText = `${data.length} noticias cargadas`;
 
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#64748b;">No hay resultados para esta búsqueda.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#64748b;">No hay resultados con estos filtros.</td></tr>';
             return;
         }
 
@@ -170,6 +172,10 @@
             const tLow = row.tono.toLowerCase();
             const tonoClass = tLow.includes('pos') ? 'positivo' : tLow.includes('neg') ? 'negativo' : 'neutro';
             
+            // Revisa que el enlace sea un enlace real, si no, lo desactiva visualmente
+            const linkValido = row.link.includes('http') ? row.link : '#';
+            const linkHTML = linkValido !== '#' ? `<a href="${linkValido}" target="_blank" class="btn-link">ABRIR</a>` : '<span style="color:#94a3b8; font-size:11px;">Sin Link</span>';
+
             tbody.innerHTML += `
                 <tr>
                     <td style="white-space:nowrap; font-weight:600; color:#64748b;">${row.fecha}</td>
@@ -179,12 +185,13 @@
                     </td>
                     <td><span class="badge ${tonoClass}">${row.tono}</span></td>
                     <td style="font-size:12px; color:#475569; max-width:250px;">${row.resumen}</td>
-                    <td><a href="${row.link}" target="_blank" class="btn-link">ABRIR</a></td>
+                    <td>${linkHTML}</td>
                 </tr>
             `;
         });
     }
 
+    // Activa los filtros (Buscador + Fecha + Tono + Medio)
     function runFilters() {
         const search = document.getElementById('search').value.toLowerCase();
         const tono = document.getElementById('filterTono').value;
@@ -195,6 +202,7 @@
             const txt = (row.titular + row.medio + row.resumen).toLowerCase();
             const fExcel = row.fecha.toLowerCase();
             
+            // Traductor de fechas infalible
             let matchFecha = true;
             if (fechaInput) {
                 const [y, m, d] = fechaInput.split('-');
