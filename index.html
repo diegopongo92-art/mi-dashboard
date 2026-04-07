@@ -2,8 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semaforo MML | Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Semaforo MML | Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -11,6 +10,7 @@
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: #1e293b; }
         header { background: white; padding: 15px 5%; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         .main { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
+        
         .controls { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
         label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block; }
         select, input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
@@ -21,18 +21,41 @@
         .btn-action:hover { opacity: 0.8; }
         .bg-gray { background: #64748b; }
 
-        .table-box { background: white; border-radius: 12px; overflow-x: auto; border: 1px solid #e2e8f0; }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        /* Estilos de Tabla Desktop */
+        .table-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; min-width: 100%; }
         th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; border-bottom: 1px solid #eee; text-transform: uppercase; }
         td { padding: 15px; border-bottom: 1px solid #e2e8f0; font-size: 13px; line-height: 1.5; transition: background 0.2s; }
         
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; display: inline-block; }
         .positivo { background: #22c55e; color: white; }
         .negativo { background: #ef4444; color: white; }
         .neutro { background: #eab308; color: white; }
+        .etiqueta-badge { background: #e2e8f0; color: #475569; font-size: 9px; margin-top: 5px; }
         
-        .btn-link { color: white; background: var(--accent); text-decoration: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; }
+        .btn-link { color: white; background: var(--accent); text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; text-align: center; }
         .btn-link:hover { background: #1d4ed8; }
+
+        /* MAGIA RESPONSIVA PARA MÓVILES (Tarjetas en lugar de tabla horizontal) */
+        @media (max-width: 768px) {
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { display: none; /* Ocultamos los encabezados tradicionales */ }
+            .table-box { border: none; background: transparent; }
+            tr { margin-bottom: 15px; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden; }
+            td { padding: 12px 15px; position: relative; border-bottom: 1px dashed #cbd5e1; text-align: left !important; }
+            td:last-child { border-bottom: none; }
+            
+            /* Títulos chiquitos antes de cada dato en móvil */
+            td::before { 
+                content: attr(data-label); 
+                display: block; 
+                font-size: 10px; 
+                text-transform: uppercase; 
+                font-weight: 700; 
+                color: #64748b; 
+                margin-bottom: 4px; 
+            }
+        }
     </style>
 </head>
 <body>
@@ -45,25 +68,31 @@
 <div class="main">
     <div class="controls">
         <div>
-            <label>Buscar (Palabra clave)</label>
+            <label>Buscar</label>
             <input type="text" id="search" placeholder="Ej. Alcalde, Obras..." onkeyup="runFilters()">
         </div>
         <div>
-            <label>Fecha de Publicación</label>
+            <label>Fecha</label>
             <div class="date-controls">
-                <button class="btn-action" onclick="setSoloHoy()" title="Ver solo noticias de hoy">Hoy</button>
-                <button class="btn-action bg-gray" onclick="verTodo()" title="Ver todo el historial">Todo</button>
+                <button class="btn-action" onclick="setSoloHoy()" title="Solo noticias de hoy">Hoy</button>
+                <button class="btn-action bg-gray" onclick="verTodo()" title="Todo el historial">Todo</button>
                 <input type="date" id="filterFecha" onchange="onFechaChange()">
             </div>
         </div>
         <div>
-            <label>Tono (Criterio de Imagen)</label>
+            <label>Etiqueta / Tema</label>
+            <select id="filterEtiqueta" onchange="runFilters()">
+                <option value="">Todas las etiquetas</option>
+            </select>
+        </div>
+        <div>
+            <label>Tono</label>
             <select id="filterTono" onchange="runFilters()">
                 <option value="">Todos</option>
             </select>
         </div>
         <div>
-            <label>Nombre del Medio</label>
+            <label>Medio</label>
             <select id="filterMedio" onchange="runFilters()">
                 <option value="">Todos</option>
             </select>
@@ -74,10 +103,10 @@
         <table>
             <thead>
                 <tr>
-                    <th width="12%">Fecha</th>
-                    <th width="30%">Titular / Medio</th>
+                    <th width="10%">Fecha</th>
+                    <th width="25%">Titular / Medio</th>
                     <th width="10%">Tono</th>
-                    <th width="38%">Resumen</th>
+                    <th width="45%">Resumen</th>
                     <th width="10%">Enlace</th>
                 </tr>
             </thead>
@@ -92,12 +121,11 @@
     const csv_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2khLH7C3lCFCIV3ss1U5AV4SOL922Sld2rnPhSayp39VqgtlBV8ey63dxgCbur1nHiK-6CfNKB2B-/pub?gid=817460174&single=true&output=csv';
     let allData = [];
     
-    // Variables para manejar las fechas exactas
     const hoyDate = new Date();
     const hoyTime = new Date(hoyDate.getFullYear(), hoyDate.getMonth(), hoyDate.getDate()).getTime();
     const ayerTime = hoyTime - (24 * 60 * 60 * 1000);
     
-    let currentMode = 'recent'; // 'recent' (Hoy y ayer), 'specific' (Fecha elegida), 'all' (Todo)
+    let currentMode = 'recent'; 
 
     async function init() {
         try {
@@ -121,6 +149,8 @@
                     const cTono = headers.find(h => h.includes('CRITERIO DE IMAGEN'));
                     const cResumen = headers.find(h => h.includes('RESUMEN'));
                     const cLink = headers.find(h => h.includes('LINK'));
+                    // Busca columna que se llame ETIQUETA o TEMA
+                    const cEtiqueta = headers.find(h => h.includes('ETIQUETA') || h.includes('TEMA'));
 
                     allData = results.data.map(row => {
                         return {
@@ -129,15 +159,13 @@
                             medio: (row[cMedio] || '').trim(),
                             tono: (row[cTono] || '').trim(),
                             resumen: (row[cResumen] || '').trim(),
-                            link: (row[cLink] || '#').trim()
+                            link: (row[cLink] || '#').trim(),
+                            etiqueta: (cEtiqueta && row[cEtiqueta] ? row[cEtiqueta].trim() : '')
                         };
                     }).filter(row => row.titular !== ""); 
 
                     allData.reverse(); 
-
-                    generateDynamicFilters(allData);
-                    
-                    // Al cargar, obligamos a que aplique el filtro inicial (Hoy y Ayer)
+                    generateStaticFilters(allData);
                     runFilters();
                 }
             });
@@ -146,7 +174,6 @@
         }
     }
 
-    // Funciones de botones de Fecha
     function setSoloHoy() {
         const y = hoyDate.getFullYear();
         const m = String(hoyDate.getMonth() + 1).padStart(2, '0');
@@ -168,7 +195,6 @@
         runFilters();
     }
 
-    // Convertidor de fechas de Excel a tiempo real matemático
     function parseExcelDate(dateStr) {
         if (!dateStr) return null;
         const clean = dateStr.split(' ')[0].trim();
@@ -181,7 +207,8 @@
         return new Date(y, m, d).getTime();
     }
 
-    function generateDynamicFilters(data) {
+    // Filtros de Tono y Medio se generan una sola vez con todos los datos
+    function generateStaticFilters(data) {
         const tonos = [...new Set(data.map(row => row.tono).filter(t => t !== ""))].sort();
         const medios = [...new Set(data.map(row => row.medio).filter(m => m !== ""))].sort();
 
@@ -190,6 +217,62 @@
 
         tonos.forEach(t => { selectTono.appendChild(new Option(t, t)); });
         medios.forEach(m => { selectMedio.appendChild(new Option(m, m)); });
+    }
+
+    // Filtro de Etiqueta se actualiza según la fecha seleccionada
+    function updateDynamicEtiquetas(dataParaEsaFecha, etiquetaActual) {
+        const selectEtiqueta = document.getElementById('filterEtiqueta');
+        const etiquetasDisponibles = [...new Set(dataParaEsaFecha.map(row => row.etiqueta).filter(e => e !== ""))].sort();
+        
+        selectEtiqueta.innerHTML = '<option value="">Todas las etiquetas</option>';
+        etiquetasDisponibles.forEach(e => { 
+            selectEtiqueta.appendChild(new Option(e, e)); 
+        });
+
+        // Si la etiqueta que tenías seleccionada sigue existiendo hoy, la mantenemos
+        if (etiquetasDisponibles.includes(etiquetaActual)) {
+            selectEtiqueta.value = etiquetaActual;
+        }
+    }
+
+    function runFilters() {
+        const search = document.getElementById('search').value.toLowerCase();
+        const tono = document.getElementById('filterTono').value;
+        const medio = document.getElementById('filterMedio').value;
+        const fechaInput = document.getElementById('filterFecha').value; 
+        const etiquetaPrevia = document.getElementById('filterEtiqueta').value;
+
+        // PASO 1: Filtrar primero solo por FECHA (Para saber qué etiquetas hay esos días)
+        const dateFiltered = allData.filter(row => {
+            const rowTime = parseExcelDate(row.fecha);
+            if (currentMode === 'specific' && fechaInput) {
+                const [yInput, mInput, dInput] = fechaInput.split('-');
+                const targetTime = new Date(parseInt(yInput), parseInt(mInput)-1, parseInt(dInput)).getTime();
+                return (rowTime === targetTime);
+            } else if (currentMode === 'recent') {
+                return (rowTime === hoyTime || rowTime === ayerTime);
+            }
+            return true; // mode 'all'
+        });
+
+        // PASO 2: Actualizar el menú de Etiquetas según los resultados de la fecha
+        updateDynamicEtiquetas(dateFiltered, etiquetaPrevia);
+        
+        // Obtenemos el valor actual de la etiqueta después de actualizar el menú
+        const etiquetaActual = document.getElementById('filterEtiqueta').value;
+
+        // PASO 3: Filtrar todo lo demás
+        const finalFiltered = dateFiltered.filter(row => {
+            const txt = (row.titular + " " + row.medio + " " + row.resumen).toLowerCase();
+            const matchSearch = search === "" || txt.includes(search);
+            const matchTono = tono === "" || row.tono === tono;
+            const matchMedio = medio === "" || row.medio === medio;
+            const matchEtiqueta = etiquetaActual === "" || row.etiqueta === etiquetaActual;
+
+            return matchSearch && matchTono && matchMedio && matchEtiqueta;
+        });
+        
+        renderTable(finalFiltered);
     }
 
     function renderTable(data) {
@@ -205,7 +288,7 @@
         countBox.innerText = `${textoConteo} (${displayData.length} noticias)`;
 
         if (displayData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b;">No hay noticias para mostrar con estos filtros.<br><br><button onclick="verTodo()" class="btn-action bg-gray" style="padding:10px 15px;">Ver todo el historial</button></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b; border:none;">No hay noticias para mostrar con estos filtros.<br><br><button onclick="verTodo()" class="btn-action bg-gray" style="padding:10px 15px;">Ver todo el historial</button></td></tr>`;
             return;
         }
 
@@ -215,66 +298,35 @@
             let rowStyle = '';
             let titularStyle = '';
 
-            // Lógica de colores según tus instrucciones
             if (tLow.includes('pos')) {
                 tonoClass = 'positivo';
-                titularStyle = 'background-color: #dcfce7;'; // Solo celda Titular en verde
+                titularStyle = 'background-color: #dcfce7; border-radius: 6px; padding: 5px;'; 
             } else if (tLow.includes('neg')) {
                 tonoClass = 'negativo';
-                rowStyle = 'background-color: #fee2e2;'; // Fila completa roja
+                rowStyle = 'background-color: #fee2e2;'; 
             } else {
                 tonoClass = 'neutro';
-                rowStyle = 'background-color: #fef9c3;'; // Fila completa amarilla
+                rowStyle = 'background-color: #fef9c3;'; 
             }
             
-            const linkHTML = row.link.includes('http') ? `<a href="${row.link}" target="_blank" class="btn-link">Abrir</a>` : '<span style="color:#94a3b8; font-size:11px;">N/A</span>';
+            const linkHTML = row.link.includes('http') ? `<a href="${row.link}" target="_blank" class="btn-link">Abrir Nota</a>` : '<span style="color:#94a3b8; font-size:11px;">Sin Enlace</span>';
+            const etiquetaHTML = row.etiqueta ? `<div class="badge etiqueta-badge">🏷️ ${row.etiqueta}</div>` : '';
 
+            // Importante: los data-label="..." son los que hacen la magia en el teléfono móvil
             tbody.innerHTML += `
                 <tr style="${rowStyle}">
-                    <td style="white-space:nowrap; font-weight:600; color:#64748b;">${row.fecha}</td>
-                    <td style="${titularStyle}">
+                    <td data-label="Fecha" style="white-space:nowrap; font-weight:600; color:#64748b;">${row.fecha}</td>
+                    <td data-label="Noticia" style="${titularStyle}">
                         <div style="font-weight:800; margin-bottom:5px; color:#0f172a;">${row.titular}</div>
                         <div style="font-size:10px; color:var(--accent); font-weight:800; text-transform:uppercase;">${row.medio}</div>
+                        ${etiquetaHTML}
                     </td>
-                    <td><span class="badge ${tonoClass}">${row.tono}</span></td>
-                    <td style="font-size:12px; color:#475569;">${row.resumen}</td>
-                    <td style="text-align:center;">${linkHTML}</td>
+                    <td data-label="Tono"><span class="badge ${tonoClass}">${row.tono}</span></td>
+                    <td data-label="Resumen" style="font-size:12px; color:#475569;">${row.resumen}</td>
+                    <td data-label="Enlace" style="text-align:center;">${linkHTML}</td>
                 </tr>
             `;
         });
-    }
-
-    function runFilters() {
-        const search = document.getElementById('search').value.toLowerCase();
-        const tono = document.getElementById('filterTono').value;
-        const medio = document.getElementById('filterMedio').value;
-        const fechaInput = document.getElementById('filterFecha').value; 
-
-        const filtered = allData.filter(row => {
-            const txt = (row.titular + " " + row.medio + " " + row.resumen).toLowerCase();
-            const rowTime = parseExcelDate(row.fecha);
-            
-            let matchFecha = true;
-
-            if (currentMode === 'specific' && fechaInput) {
-                const [yInput, mInput, dInput] = fechaInput.split('-');
-                const targetTime = new Date(parseInt(yInput), parseInt(mInput)-1, parseInt(dInput)).getTime();
-                matchFecha = (rowTime === targetTime);
-            } else if (currentMode === 'recent') {
-                // Modo predeterminado: solo coinciden si es hoy o ayer
-                matchFecha = (rowTime === hoyTime || rowTime === ayerTime);
-            } else if (currentMode === 'all') {
-                matchFecha = true; // Deja pasar todas las fechas
-            }
-
-            const matchSearch = search === "" || txt.includes(search);
-            const matchTono = tono === "" || row.tono === tono;
-            const matchMedio = medio === "" || row.medio === medio;
-
-            return matchSearch && matchTono && matchMedio && matchFecha;
-        });
-        
-        renderTable(filtered);
     }
 
     init();
