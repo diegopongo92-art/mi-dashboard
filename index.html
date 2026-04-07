@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Semaforo MML | Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #002f80; --bg: #f1f5f9; --accent: #2563eb; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: #1e293b; }
@@ -14,6 +14,26 @@
         header { background: var(--primary); padding: 15px 5%; box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         
         .main { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
+
+        /* Tarjetas de Resumen (Contadores) */
+        .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .card { padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: center; }
+        .card-title { font-size: 11px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; }
+        .card-value { font-size: 28px; font-weight: 800; line-height: 1; }
+        
+        /* Colores de las tarjetas más intensos y legibles */
+        .card.total { background: #ffffff; }
+        .card.total .card-title { color: #475569; }
+        .card.total .card-value { color: #0f172a; }
+
+        .card.positiva { background: #4ade80; border-color: #22c55e; } 
+        .card.positiva .card-title, .card.positiva .card-value { color: #064e3b; }
+
+        .card.neutra { background: #facc15; border-color: #eab308; } 
+        .card.neutra .card-title, .card.neutra .card-value { color: #422006; }
+
+        .card.negativa { background: #f87171; border-color: #ef4444; } 
+        .card.negativa .card-title, .card.negativa .card-value { color: #450a0a; }
         
         .controls { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
         label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block; }
@@ -29,34 +49,26 @@
         .table-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
         table { width: 100%; border-collapse: collapse; min-width: 100%; }
         th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; border-bottom: 1px solid #eee; text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid #e2e8f0; font-size: 13px; line-height: 1.5; transition: background 0.2s; }
+        td { padding: 15px; border-bottom: 1px solid #e2e8f0; font-size: 13px; line-height: 1.5; transition: background 0.2s; color: #0f172a; } /* Texto más oscuro para contrastar con fondos de color */
         
         .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; display: inline-block; }
-        .positivo { background: #22c55e; color: white; }
-        .negativo { background: #ef4444; color: white; }
-        .neutro { background: #eab308; color: white; }
+        .badge-positivo { background: #15803d; color: white; }
+        .badge-negativo { background: #b91c1c; color: white; }
+        .badge-neutro { background: #a16207; color: white; }
         
         .btn-link { color: white; background: var(--accent); text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; text-align: center; }
         .btn-link:hover { background: #1d4ed8; }
 
-        /* Tarjetas Responsivas para Móviles */
+        /* Responsivo para móviles */
         @media (max-width: 768px) {
+            .summary-cards { grid-template-columns: repeat(2, 1fr); }
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { display: none; }
             .table-box { border: none; background: transparent; }
             tr { margin-bottom: 15px; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden; }
             td { padding: 12px 15px; position: relative; border-bottom: 1px dashed #cbd5e1; text-align: left !important; }
             td:last-child { border-bottom: none; }
-            
-            td::before { 
-                content: attr(data-label); 
-                display: block; 
-                font-size: 10px; 
-                text-transform: uppercase; 
-                font-weight: 700; 
-                color: #64748b; 
-                margin-bottom: 4px; 
-            }
+            td::before { content: attr(data-label); display: block; font-size: 10px; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px; }
         }
     </style>
 </head>
@@ -68,6 +80,26 @@
 </header>
 
 <div class="main">
+    
+    <div class="summary-cards">
+        <div class="card total">
+            <div class="card-title"># Menciones</div>
+            <div class="card-value" id="count-total">0</div>
+        </div>
+        <div class="card positiva">
+            <div class="card-title"># Positivas</div>
+            <div class="card-value" id="count-pos">0</div>
+        </div>
+        <div class="card neutra">
+            <div class="card-title"># Neutras</div>
+            <div class="card-value" id="count-neu">0</div>
+        </div>
+        <div class="card negativa">
+            <div class="card-title"># Negativas</div>
+            <div class="card-value" id="count-neg">0</div>
+        </div>
+    </div>
+
     <div class="controls">
         <div>
             <label>Buscar</label>
@@ -253,7 +285,6 @@
         });
 
         updateDynamicEtiquetas(dateFiltered, etiquetaPrevia);
-        
         const etiquetaActual = document.getElementById('filterEtiqueta').value;
 
         const finalFiltered = dateFiltered.filter(row => {
@@ -266,6 +297,19 @@
             return matchSearch && matchTono && matchMedio && matchEtiqueta;
         });
         
+        let countPos = 0, countNeu = 0, countNeg = 0;
+        finalFiltered.forEach(row => {
+            const tLow = row.tono.toLowerCase();
+            if (tLow.includes('pos')) countPos++;
+            else if (tLow.includes('neg')) countNeg++;
+            else countNeu++;
+        });
+
+        document.getElementById('count-total').innerText = finalFiltered.length;
+        document.getElementById('count-pos').innerText = countPos;
+        document.getElementById('count-neu').innerText = countNeu;
+        document.getElementById('count-neg').innerText = countNeg;
+
         renderTable(finalFiltered);
     }
 
@@ -279,7 +323,7 @@
         let textoConteo = currentMode === 'recent' ? "Mostrando Solo Hoy y Ayer" : 
                           currentMode === 'specific' ? "Mostrando Fecha Seleccionada" : "Mostrando Histórico";
         
-        countBox.innerText = `${textoConteo} (${displayData.length} noticias)`;
+        countBox.innerText = `${textoConteo}`;
 
         if (displayData.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b; border:none;">No hay noticias para mostrar con estos filtros.<br><br><button onclick="verTodo()" class="btn-action bg-gray" style="padding:10px 15px;">Ver todo el historial</button></td></tr>`;
@@ -288,32 +332,32 @@
 
         displayData.forEach(row => {
             const tLow = row.tono.toLowerCase();
-            let tonoClass = 'neutro';
+            let badgeClass = 'badge-neutro';
             let rowStyle = '';
 
-            // Colores pasteles un poco más intensos para toda la fila
+            // Colores equilibrados en intensidad para que ninguno se pierda
             if (tLow.includes('pos')) {
-                tonoClass = 'positivo';
-                rowStyle = 'background-color: #bbf7d0;'; // Verde pastel más intenso
+                badgeClass = 'badge-positivo';
+                rowStyle = 'background-color: #86efac;'; // Verde pastel intenso
             } else if (tLow.includes('neg')) {
-                tonoClass = 'negativo';
-                rowStyle = 'background-color: #fecaca;'; // Rojo pastel más intenso
+                badgeClass = 'badge-negativo';
+                rowStyle = 'background-color: #fc8181;'; // Rojo claro intenso (bien rojo, cero rosa)
             } else {
-                tonoClass = 'neutro';
-                rowStyle = 'background-color: #fde047;'; // Amarillo pastel más intenso
+                badgeClass = 'badge-neutro';
+                rowStyle = 'background-color: #fde047;'; // Amarillo intenso
             }
             
-            const linkHTML = row.link.includes('http') ? `<a href="${row.link}" target="_blank" class="btn-link">Abrir Nota</a>` : '<span style="color:#94a3b8; font-size:11px;">Sin Enlace</span>';
+            const linkHTML = row.link.includes('http') ? `<a href="${row.link}" target="_blank" class="btn-link">Abrir Nota</a>` : '<span style="color:#64748b; font-size:11px;">Sin Enlace</span>';
 
             tbody.innerHTML += `
                 <tr style="${rowStyle}">
-                    <td data-label="Fecha" style="white-space:nowrap; font-weight:600; color:#64748b;">${row.fecha}</td>
+                    <td data-label="Fecha" style="white-space:nowrap; font-weight:700;">${row.fecha}</td>
                     <td data-label="Noticia">
-                        <div style="font-weight:800; margin-bottom:5px; color:#0f172a;">${row.titular}</div>
-                        <div style="font-size:10px; color:var(--accent); font-weight:800; text-transform:uppercase;">${row.medio}</div>
+                        <div style="font-weight:800; margin-bottom:5px;">${row.titular}</div>
+                        <div style="font-size:10px; color:var(--primary); font-weight:800; text-transform:uppercase;">${row.medio}</div>
                     </td>
-                    <td data-label="Tono"><span class="badge ${tonoClass}">${row.tono}</span></td>
-                    <td data-label="Resumen" style="font-size:12px; color:#475569;">${row.resumen}</td>
+                    <td data-label="Tono"><span class="badge ${badgeClass}">${row.tono}</span></td>
+                    <td data-label="Resumen" style="font-size:12px; font-weight:600;">${row.resumen}</td>
                     <td data-label="Enlace" style="text-align:center;">${linkHTML}</td>
                 </tr>
             `;
