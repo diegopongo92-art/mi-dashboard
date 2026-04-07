@@ -16,7 +16,7 @@
         
         .main { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
 
-        /* Barra de Acciones (Botones Extra) */
+        /* Barra de Acciones */
         .actions-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: flex-end; }
         .btn-extra { padding: 10px 15px; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; color: white; text-transform: uppercase; transition: opacity 0.2s, transform 0.1s; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .btn-extra:hover { opacity: 0.9; transform: translateY(-1px); }
@@ -25,7 +25,7 @@
         .btn-excel { background: #10b981; }
         .btn-pdf { background: #ef4444; }
 
-        /* Tarjetas de Resumen (Contadores) */
+        /* Tarjetas de Resumen */
         .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
         .card { padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: center; }
         .card-title { font-size: 11px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; }
@@ -66,17 +66,46 @@
         .btn-link { color: white; background: var(--accent); text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; text-align: center; white-space: nowrap; }
         .btn-link:hover { background: #1d4ed8; }
 
-        /* Responsivo para móviles */
+        /* Responsivo para móviles (Versión Ultra-Compacta) */
         @media (max-width: 768px) {
             .summary-cards { grid-template-columns: repeat(2, 1fr); }
             .actions-bar { justify-content: center; }
+            
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { display: none; }
             .table-box { border: none; background: transparent; }
-            tr { margin-bottom: 15px; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden; }
-            td { padding: 12px 15px; position: relative; border-bottom: 1px dashed #cbd5e1; text-align: left !important; }
-            td:last-child { border-bottom: none; }
-            td::before { content: attr(data-label); display: block; font-size: 10px; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px; }
+            
+            /* Tarjeta compacta usando Flexbox */
+            tr { 
+                margin-bottom: 12px; 
+                border-radius: 10px; 
+                border: 1px solid #cbd5e1; 
+                box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+                padding: 12px;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 8px 0; /* Espaciado vertical entre elementos */
+            }
+            
+            td { 
+                padding: 0; 
+                border: none; 
+                text-align: left !important; 
+            }
+            
+            /* Eliminamos subtítulos redundantes para ahorrar MUCHO espacio */
+            td::before { display: none; } 
+            
+            /* Distribución de la tarjeta */
+            td:nth-child(1) { width: 50%; order: 1; font-size: 11px; color: #475569; } /* Fecha (Arriba izq) */
+            td:nth-child(3) { width: 50%; order: 2; text-align: right !important; } /* Tono (Arriba der) */
+            td:nth-child(2) { width: 100%; order: 3; } /* Titular y Medio (Centro) */
+            td:nth-child(4) { width: 100%; order: 4; font-size: 12px; line-height: 1.4; color: #334155; } /* Resumen */
+            td:nth-child(5) { width: 100%; order: 5; margin-top: 5px; } /* Enlace (Abajo) */
+            
+            /* Hacemos que el botón de enlace ocupe todo el ancho para celular */
+            .btn-link { width: 100%; box-sizing: border-box; padding: 8px 12px; }
         }
     </style>
 </head>
@@ -155,7 +184,8 @@
                     <th style="width: 25%;">Titular / Medio</th>
                     <th style="width: 10%;">Tono</th>
                     <th style="width: 45%;">Resumen</th>
-                    <th style="width: 10%;">Enlace</th> </tr>
+                    <th style="width: 10%;">Enlace</th>
+                </tr>
             </thead>
             <tbody id="table-body">
                 <tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b; font-weight:bold;">Sincronizando datos, un momento...</td></tr>
@@ -411,17 +441,19 @@
                 rowStyle = 'background-color: #fde047;'; 
             }
             
-            const linkHTML = row.link.includes('http') ? `<a href="${row.link}" target="_blank" class="btn-link">Abrir Nota</a>` : '<span style="color:#64748b; font-size:11px;">Sin Enlace</span>';
+            const linkHTML = row.link.includes('http') ? 
+                `<a href="${row.link}" target="_blank" class="btn-link">Abrir Nota</a>` : 
+                `<span style="color:#64748b; font-size:11px; display:block; text-align:center; padding:6px 0;">Sin Enlace</span>`;
 
             tbody.innerHTML += `
                 <tr style="${rowStyle}">
                     <td data-label="Fecha" style="font-weight:700;">${row.fecha}</td>
                     <td data-label="Noticia">
-                        <div style="font-weight:800; margin-bottom:5px;">${row.titular}</div>
+                        <div style="font-weight:800; margin-bottom:5px; font-size:13px;">${row.titular}</div>
                         <div style="font-size:10px; color:var(--primary); font-weight:800; text-transform:uppercase;">${row.medio} <span style="color:#64748b;">(${row.tipoMedio})</span></div>
                     </td>
                     <td data-label="Tono"><span class="badge ${badgeClass}">${row.tono}</span></td>
-                    <td data-label="Resumen" style="font-size:12px; font-weight:600;">${row.resumen}</td>
+                    <td data-label="Resumen" style="font-weight:600;">${row.resumen}</td>
                     <td data-label="Enlace" style="text-align:center;">${linkHTML}</td>
                 </tr>
             `;
