@@ -29,7 +29,7 @@
 
 <header>
     <h1 style="font-size: 1.1rem; color: var(--primary); font-weight: 800; margin:0;">SEMÁFORO DE MEDIOS</h1>
-    <div id="data-count" style="font-size: 12px; font-weight: 600; color: #64748b;">Cargando...</div>
+    <div id="data-count" style="font-size: 12px; font-weight: 600; color: #64748b;">Conectando...</div>
 </header>
 
 <div class="main">
@@ -43,13 +43,13 @@
             <input type="date" id="filterFecha" onchange="runFilters()">
         </div>
         <div>
-            <label>Tono (Automático)</label>
+            <label>Tono</label>
             <select id="filterTono" onchange="runFilters()">
                 <option value="">Todos</option>
             </select>
         </div>
         <div>
-            <label>Medio (Automático)</label>
+            <label>Medio</label>
             <select id="filterMedio" onchange="runFilters()">
                 <option value="">Todos</option>
             </select>
@@ -67,7 +67,9 @@
                     <th>Link</th>
                 </tr>
             </thead>
-            <tbody id="table-body"></tbody>
+            <tbody id="table-body">
+                <tr><td colspan="5" style="text-align:center; padding:40px;">Leyendo Google Sheets...</td></tr>
+            </tbody>
         </table>
     </div>
 </div>
@@ -81,33 +83,64 @@
             download: true,
             header: true,
             skipEmptyLines: true,
+            // AQUÍ ESTÁ LA MAGIA: Limpiamos los títulos de las columnas del Excel
+            transformHeader: function(header) {
+                return header.trim().toUpperCase();
+            },
             complete: function(results) {
-                allData = results.data.filter(row => row['NOMBRE Y TITULAR'] && row['NOMBRE Y TITULAR'].trim() !== "");
+                // Buscamos si existe la columna, sea como sea que se llame
+                allData = results.data.filter(row => {
+                    const titular = row['NOMBRE Y TITULAR'] || row['TITULAR'] || '';
+                    return titular.trim() !== "";
+                });
+
+                // Si no encontró nada, MOSTRAMOS EL ERROR para saber por qué
+                if (allData.length === 0) {
+                    const columnasEncontradas = Object.keys(results.data[0] || {}).join(', ');
+                    document.getElementById('table-body').innerHTML = `
+                        <tr><td colspan="5" style="text-align:center; padding:40px; color:#b91c1c; background:#fee2e2;">
+                            <b>¡Atención!</b> No encontré noticias. <br><br>
+                            El código busca la columna "NOMBRE Y TITULAR", pero tu Excel tiene estas columnas:<br>
+                            <b>${columnasEncontradas}</b><br><br>
+                            Asegúrate de que los títulos de tu Excel estén en la primera fila.
+                        </td></tr>`;
+                    document.getElementById('data-count').innerText = "Error de lectura";
+                    return;
+                }
+
                 generateDynamicFilters(allData);
+                
+                // Limpiamos el selector de fecha por defecto para mostrar TODO al abrir
+                document.getElementById('filterFecha').value = "";
                 renderTable(allData);
+            },
+            error: function(err) {
+                document.getElementById('table-body').innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Error de red: ${err}</td></tr>`;
             }
         });
     }
 
-    // ESTA FUNCIÓN CREA LOS FILTROS SEGÚN TU EXCEL
     function generateDynamicFilters(data) {
+        // Extraemos valores únicos y quitamos vacíos
         const tonos = [...new Set(data.map(row => (row.TONO || '').trim()).filter(t => t !== ""))];
         const medios = [...new Set(data.map(row => (row['TIPO DE MEDIO'] || '').trim()).filter(m => m !== ""))];
 
         const selectTono = document.getElementById('filterTono');
         const selectMedio = document.getElementById('filterMedio');
 
+        // Limpiamos las opciones previas (solo dejamos "Todos")
+        selectTono.innerHTML = '<option value="">Todos</option>';
+        selectMedio.innerHTML = '<option value="">Todos</option>';
+
         tonos.forEach(t => {
             let opt = document.createElement('option');
-            opt.value = t;
-            opt.innerText = t;
+            opt.value = t; opt.innerText = t;
             selectTono.appendChild(opt);
         });
 
         medios.forEach(m => {
             let opt = document.createElement('option');
-            opt.value = m;
-            opt.innerText = m;
+            opt.value = m; opt.innerText = m;
             selectMedio.appendChild(opt);
         });
     }
@@ -116,28 +149,30 @@
         const tbody = document.getElementById('table-body');
         const countBox = document.getElementById('data-count');
         tbody.innerHTML = '';
-        countBox.innerText = `${data.length} registros`;
+        countBox.innerText = `${data.length} registros cargados`;
 
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#64748b;">No hay datos para esta selección.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#64748b;">No hay noticias para los filtros seleccionados.</td></tr>';
             return;
         }
 
         data.forEach(row => {
+            const titular = row['NOMBRE Y TITULAR'] || row['TITULAR'] || '';
             const tono = (row.TONO || '').trim();
             const tLow = tono.toLowerCase();
             const tonoClass = tLow.includes('pos') ? 'positivo' : tLow.includes('neg') ? 'negativo' : tLow.includes('neu') ? 'neutro' : '';
+            const link = row.LINK || '#';
             
             tbody.innerHTML += `
                 <tr>
                     <td style="white-space:nowrap; font-weight:600; color:#64748b;">${row.FECHA || ''}</td>
                     <td>
-                        <div style="font-weight:700; margin-bottom:3px; color:#0f172a;">${row['NOMBRE Y TITULAR']}</div>
+                        <div style="font-weight:700; margin-bottom:3px; color:#0f172a;">${titular}</div>
                         <div style="font-size:10px; color:var(--accent); font-weight:700; text-transform:uppercase;">${row['TIPO DE MEDIO'] || ''}</div>
                     </td>
                     <td><span class="badge ${tonoClass}">${tono}</span></td>
                     <td style="font-size:12px; color:#475569; max-width:250px;">${row.RESUMEN || ''}</td>
-                    <td><a href="${row.LINK}" target="_blank" class="btn-link">LINK</a></td>
+                    <td><a href="${link}" target="_blank" class="btn-link">LINK</a></td>
                 </tr>
             `;
         });
@@ -147,22 +182,32 @@
         const search = document.getElementById('search').value.toLowerCase();
         const tono = document.getElementById('filterTono').value;
         const medio = document.getElementById('filterMedio').value;
-        const fechaInput = document.getElementById('filterFecha').value; 
-
-        let fechaBusqueda = "";
-        if (fechaInput) {
-            const [y, m, d] = fechaInput.split('-');
-            fechaBusqueda = `${d}/${m}`; 
-        }
+        const fechaInput = document.getElementById('filterFecha').value; // Formato YYYY-MM-DD
 
         const filtered = allData.filter(row => {
-            const txt = ((row['NOMBRE Y TITULAR'] || '') + (row['TIPO DE MEDIO'] || '') + (row.RESUMEN || '')).toLowerCase();
+            const titularFila = row['NOMBRE Y TITULAR'] || row['TITULAR'] || '';
+            const txt = (titularFila + (row['TIPO DE MEDIO'] || '') + (row.RESUMEN || '')).toLowerCase();
             const fExcel = (row.FECHA || '').toLowerCase();
             
+            // Lógica súper flexible para la fecha
+            let matchFecha = true;
+            if (fechaInput) {
+                const [y, m, d] = fechaInput.split('-');
+                const dNum = parseInt(d, 10).toString(); // Quita el cero inicial (ej. 05 -> 5)
+                const mNum = parseInt(m, 10).toString();
+                
+                // Comprueba todos los formatos en los que podrías haber escrito la fecha en Excel
+                const f1 = `${d}/${m}/${y}`; // 25/02/2026
+                const f2 = `${dNum}/${mNum}/${y}`; // 25/2/2026
+                const f3 = `${d}/${m}`; // 25/02
+                const f4 = `${dNum}/${mNum}`; // 25/2
+                
+                matchFecha = fExcel.includes(f1) || fExcel.includes(f2) || fExcel.includes(f3) || fExcel.includes(f4);
+            }
+
             const matchSearch = txt.includes(search);
             const matchTono = tono === "" || (row.TONO || '').trim() === tono;
             const matchMedio = medio === "" || (row['TIPO DE MEDIO'] || '').trim() === medio;
-            const matchFecha = fechaBusqueda === "" || fExcel.includes(fechaBusqueda);
 
             return matchSearch && matchTono && matchMedio && matchFecha;
         });
