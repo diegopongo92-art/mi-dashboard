@@ -54,7 +54,7 @@
         .btn-action:hover { opacity: 0.8; }
         .bg-gray { background: #64748b; }
 
-        /* Estilos de Tabla Desktop con Ajuste de Texto Fijo */
+        /* Estilos de Tabla Desktop */
         .table-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
         table { width: 100%; border-collapse: collapse; min-width: 100%; table-layout: fixed; word-wrap: break-word; }
         th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; border-bottom: 1px solid #eee; text-transform: uppercase; }
@@ -68,7 +68,7 @@
         .btn-link { color: white; background: var(--accent); text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; text-align: center; white-space: nowrap; }
         .btn-link:hover { background: #1d4ed8; }
 
-        /* Responsivo para móviles (Versión Ultra-Compacta) */
+        /* Responsivo para móviles */
         @media (max-width: 768px) {
             .header-left { gap: 10px; }
             .header-logo { height: 26px; padding: 4px 6px; }
@@ -81,34 +81,18 @@
             thead tr { display: none; }
             .table-box { border: none; background: transparent; }
             
-            /* Tarjeta compacta usando Flexbox */
             tr { 
-                margin-bottom: 12px; 
-                border-radius: 10px; 
-                border: 1px solid #cbd5e1; 
-                box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
-                padding: 12px;
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 8px 0; 
+                margin-bottom: 12px; border-radius: 10px; border: 1px solid #cbd5e1; 
+                box-shadow: 0 2px 5px rgba(0,0,0,0.05); padding: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 0; 
             }
-            
-            td { 
-                padding: 0; 
-                border: none; 
-                text-align: left !important; 
-            }
-            
+            td { padding: 0; border: none; text-align: left !important; }
             td::before { display: none; } 
             
-            /* Distribución de la tarjeta */
-            td:nth-child(1) { width: 50%; order: 1; font-size: 11px; color: #475569; } /* Fecha */
-            td:nth-child(3) { width: 50%; order: 2; text-align: right !important; } /* Tono */
-            td:nth-child(2) { width: 100%; order: 3; } /* Titular y Medio */
-            td:nth-child(4) { width: 100%; order: 4; font-size: 12px; line-height: 1.4; color: #334155; } /* Resumen */
-            td:nth-child(5) { width: 100%; order: 5; margin-top: 5px; } /* Enlace */
-            
+            td:nth-child(1) { width: 50%; order: 1; font-size: 11px; color: #475569; }
+            td:nth-child(3) { width: 50%; order: 2; text-align: right !important; }
+            td:nth-child(2) { width: 100%; order: 3; }
+            td:nth-child(4) { width: 100%; order: 4; font-size: 12px; line-height: 1.4; color: #334155; }
+            td:nth-child(5) { width: 100%; order: 5; margin-top: 5px; }
             .btn-link { width: 100%; box-sizing: border-box; padding: 8px 12px; }
         }
     </style>
@@ -158,8 +142,8 @@
         <div>
             <label>Fecha</label>
             <div class="date-controls">
-                <button class="btn-action" onclick="setSoloHoy()" title="Solo noticias de hoy">Hoy</button>
-                <button class="btn-action bg-gray" onclick="verTodo()" title="Todo el historial">Todo</button>
+                <button class="btn-action" onclick="setSoloHoy()" title="Noticias de hoy">Hoy</button>
+                <button class="btn-action bg-gray" onclick="verMes()" title="Noticias de este mes">Mes</button>
                 <input type="date" id="filterFecha" onchange="onFechaChange()">
             </div>
         </div>
@@ -199,6 +183,12 @@
             </tbody>
         </table>
     </div>
+
+    <div id="btn-ayer-container" style="text-align: center; margin-top: 15px; margin-bottom: 30px; display: none;" data-html2canvas-ignore="true">
+        <button id="btn-ayer" class="btn-action bg-gray" style="padding: 10px 20px; font-size: 12px; border-radius: 8px;" onclick="toggleAyer()">
+            ➕ Incluir notas de ayer
+        </button>
+    </div>
 </div>
 
 <script>
@@ -210,7 +200,8 @@
     const hoyTime = new Date(hoyDate.getFullYear(), hoyDate.getMonth(), hoyDate.getDate()).getTime();
     const ayerTime = hoyTime - (24 * 60 * 60 * 1000);
     
-    let currentMode = 'recent'; 
+    let currentMode = 'hoy'; // Por defecto muestra solo hoy
+    let mostrarAyer = false; // Bandera para el botón extra
 
     async function init() {
         try {
@@ -276,19 +267,44 @@
         const m = String(hoyDate.getMonth() + 1).padStart(2, '0');
         const d = String(hoyDate.getDate()).padStart(2, '0');
         document.getElementById('filterFecha').value = `${y}-${m}-${d}`;
-        currentMode = 'specific';
+        currentMode = 'hoy';
+        mostrarAyer = false;
+        document.getElementById('btn-ayer').innerHTML = "➕ Incluir notas de ayer";
         runFilters();
     }
 
-    function verTodo() {
+    function verMes() {
         document.getElementById('filterFecha').value = '';
-        currentMode = 'all';
+        currentMode = 'month';
+        mostrarAyer = false;
         runFilters();
     }
 
     function onFechaChange() {
         const val = document.getElementById('filterFecha').value;
-        currentMode = val ? 'specific' : 'all'; 
+        const y = hoyDate.getFullYear();
+        const m = String(hoyDate.getMonth() + 1).padStart(2, '0');
+        const d = String(hoyDate.getDate()).padStart(2, '0');
+        
+        // Si escogen justo la fecha de hoy, activamos el modo "hoy"
+        if (val === `${y}-${m}-${d}`) {
+            currentMode = 'hoy';
+        } else {
+            currentMode = val ? 'specific' : 'month'; 
+        }
+        mostrarAyer = false;
+        document.getElementById('btn-ayer').innerHTML = "➕ Incluir notas de ayer";
+        runFilters();
+    }
+
+    function toggleAyer() {
+        mostrarAyer = !mostrarAyer;
+        const btn = document.getElementById('btn-ayer');
+        if (mostrarAyer) {
+            btn.innerHTML = "➖ Ocultar notas de ayer";
+        } else {
+            btn.innerHTML = "➕ Incluir notas de ayer";
+        }
         runFilters();
     }
 
@@ -298,7 +314,9 @@
         document.getElementById('filterEtiqueta').value = '';
         document.getElementById('filterTono').value = '';
         document.getElementById('filterTipoMedio').value = '';
-        currentMode = 'recent';
+        currentMode = 'hoy';
+        mostrarAyer = false;
+        document.getElementById('btn-ayer').innerHTML = "➕ Incluir notas de ayer";
         runFilters();
     }
 
@@ -329,6 +347,9 @@
 
     function downloadPDF() {
         const elemento = document.getElementById('dashboard-content');
+        const btnAyer = document.getElementById('btn-ayer-container');
+        btnAyer.style.display = 'none'; // ocultar botón para el pdf
+        
         const opciones = {
             margin:       0.3,
             filename:     'Semaforo_MML_Reporte.pdf',
@@ -336,12 +357,16 @@
             html2canvas:  { scale: 2, useCORS: true },
             jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
         };
-        html2pdf().set(opciones).from(elemento).save();
+        
+        html2pdf().set(opciones).from(elemento).save().then(() => {
+            // restaurar el botón si correspondía
+            if(currentMode === 'hoy') btnAyer.style.display = 'block';
+        });
     }
 
     function parseExcelDate(dateStr) {
         if (!dateStr) return null;
-        const clean = dateStr.split(' ')[0].trim();
+        const clean = dateStr.split(' ')[0].trim(); // Extrae solo la fecha sin horas
         const p = clean.split('/');
         if(p.length !== 3) return null;
         const d = parseInt(p[0], 10);
@@ -372,14 +397,34 @@
         const fechaInput = document.getElementById('filterFecha').value; 
         const etiquetaPrevia = document.getElementById('filterEtiqueta').value;
 
+        // Mostrar u ocultar el botón de "Incluir notas de ayer"
+        const btnAyerContainer = document.getElementById('btn-ayer-container');
+        if (currentMode === 'hoy') {
+            btnAyerContainer.style.display = 'block';
+        } else {
+            btnAyerContainer.style.display = 'none';
+        }
+
         const dateFiltered = allData.filter(row => {
             const rowTime = parseExcelDate(row.fecha);
-            if (currentMode === 'specific' && fechaInput) {
+            if (!rowTime) return true;
+
+            const rowDateObj = new Date(rowTime);
+            const rY = rowDateObj.getFullYear();
+            const rM = rowDateObj.getMonth();
+
+            if (currentMode === 'hoy') {
+                if (mostrarAyer) {
+                    return (rowTime === hoyTime || rowTime === ayerTime);
+                } else {
+                    return (rowTime === hoyTime);
+                }
+            } else if (currentMode === 'specific' && fechaInput) {
                 const [yInput, mInput, dInput] = fechaInput.split('-');
                 const targetTime = new Date(parseInt(yInput), parseInt(mInput)-1, parseInt(dInput)).getTime();
                 return (rowTime === targetTime);
-            } else if (currentMode === 'recent') {
-                return (rowTime === hoyTime || rowTime === ayerTime);
+            } else if (currentMode === 'month') {
+                return (rY === hoyDate.getFullYear() && rM === hoyDate.getMonth());
             }
             return true; 
         });
@@ -422,13 +467,14 @@
         
         const displayData = data.slice(0, 300); 
         
-        let textoConteo = currentMode === 'recent' ? "Mostrando Solo Hoy y Ayer" : 
-                          currentMode === 'specific' ? "Mostrando Fecha Seleccionada" : "Mostrando Histórico";
+        let textoConteo = currentMode === 'hoy' ? (mostrarAyer ? "Mostrando: Hoy + Ayer" : "Mostrando: Solo Hoy") : 
+                          currentMode === 'specific' ? "Mostrando Fecha Seleccionada" : 
+                          currentMode === 'month' ? "Mostrando: Este Mes" : "Mostrando Datos";
         
         countBox.innerText = `${textoConteo}`;
 
         if (displayData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b; border:none;">No hay noticias para mostrar con estos filtros.<br><br><button onclick="verTodo()" class="btn-action bg-gray" style="padding:10px 15px;">Ver todo el historial</button></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b; border:none;">No hay noticias para mostrar con estos filtros.<br><br><button onclick="verMes()" class="btn-action bg-gray" style="padding:10px 15px;">Ver todo el mes</button></td></tr>`;
             return;
         }
 
