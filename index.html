@@ -570,10 +570,11 @@
                 `<a href="${row.link}" target="_blank" class="btn-link">Abrir Nota</a>` : 
                 `<span style="color:#64748b; font-size:11px; display:block; text-align:center; padding:6px 0;">Sin Enlace</span>`;
 
-            let horaRegistro = "";
+          let horaRegistro = "";
             if(row.marcaTemporal) {
                 const parts = row.marcaTemporal.trim().split(/\s+/);
-                if(parts.length >= 2) horaRegistro = `<div style="font-size:9px; color:#94a3b8; margin-top:3px;">Registrado: ${parts[1]}</div>`;
+                // Usamos negro al 60% de opacidad y fuente más gruesa para que contraste con cualquier fondo
+                if(parts.length >= 2) horaRegistro = `<div style="font-size:10px; color:rgba(0,0,0,0.65); font-weight:600; margin-top:4px;">Registrado: ${parts[1]}</div>`;
             }
 
             tbody.innerHTML += `
