@@ -15,6 +15,7 @@
         header { background: var(--primary); padding: 15px 5%; box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         .header-left { display: flex; align-items: center; gap: 15px; }
         .header-logo { height: 40px; background-color: white; padding: 5px 10px; border-radius: 6px; object-fit: contain; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .header-credits { font-size: 11px; color: #94a3b8; margin-top: 2px; font-weight: 600; }
         
         .main { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
 
@@ -44,7 +45,7 @@
         .card.negativa .card-title, .card.negativa .card-value { color: #450a0a; }
         
         /* Controles de Filtro */
-        .controls { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+        .controls { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
         label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block; }
         select, input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
         
@@ -73,6 +74,7 @@
             .header-left { gap: 10px; }
             .header-logo { height: 26px; padding: 4px 6px; }
             header h1 { font-size: 0.85rem !important; }
+            .header-credits { font-size: 9px !important; }
             
             .summary-cards { grid-template-columns: repeat(2, 1fr); }
             .actions-bar { justify-content: center; }
@@ -102,7 +104,10 @@
 <header>
     <div class="header-left">
         <img src="643cae93-18fd-40de-9f6c-a08884372e18.png" alt="Logo Municipalidad de Lima" class="header-logo">
-        <div style="display:flex; flex-direction:column; gap:2px;"><h1 style="font-size: 1.1rem; color: white; font-weight: 800; margin:0;">SEMÁFORO DE MEDIOS MML</h1><span style="font-size: 9px; color: rgba(255,255,255,0.35); font-weight: 500; letter-spacing: 0.3px;">Desarrollado por Diego Pongo y Mariel Ramírez</span></div>
+        <div>
+            <h1 style="font-size: 1.1rem; color: white; font-weight: 800; margin:0; line-height: 1.2;">SEMÁFORO DE MEDIOS MML</h1>
+            <div class="header-credits">Desarrollado por Diego Pongo y Mariel Ramírez</div>
+        </div>
     </div>
     <div id="data-count" style="font-size: 12px; font-weight: 600; color: #cbd5e1; text-align:right;">Conectando...</div>
 </header>
@@ -148,9 +153,13 @@
             </div>
         </div>
         <div>
+            <label>Hora de Registro (Desde)</label>
+            <input type="time" id="filterHora" onchange="runFilters()" title="Filtrar notas registradas de esta hora en adelante">
+        </div>
+        <div>
             <label>Etiqueta / Tema</label>
             <select id="filterEtiqueta" onchange="runFilters()">
-                <option value="">Todas las etiquetas</option>
+                <option value="">Todas</option>
             </select>
         </div>
         <div>
@@ -205,7 +214,10 @@
 
     async function init() {
         try {
-            const response = await fetch(csv_url);
+            // Anti-caché integrado para reflejar cambios rápido
+            const cacheBusterUrl = csv_url + '&t=' + new Date().getTime();
+            const response = await fetch(cacheBusterUrl);
+            
             if (!response.ok) throw new Error("No se pudo conectar a Google Sheets.");
             const csvText = await response.text();
 
@@ -219,7 +231,7 @@
                 complete: function(results) {
                     const headers = Object.keys(results.data[0]);
 
-                    const cMarcaTemporal = headers.find(h => h.includes('MARCA TEMPORAL')); // Nueva columna
+                    const cMarcaTemporal = headers.find(h => h.includes('MARCA TEMPORAL')); 
                     const cFecha = headers.find(h => h.includes('FECHA DE PUBLICACION'));
                     const cTitular = headers.find(h => h.includes('TITULAR'));
                     const cMedio = headers.find(h => h.includes('NOMBRE DEL MEDIO'));
@@ -231,7 +243,7 @@
 
                     allData = results.data.map(row => {
                         return {
-                            marcaTemporal: (row[cMarcaTemporal] || '').trim(), // Capturamos la marca temporal
+                            marcaTemporal: (row[cMarcaTemporal] || '').trim(), 
                             fecha: (row[cFecha] || '').trim(),
                             titular: (row[cTitular] || '').trim(),
                             medio: (row[cMedio] || '').trim(),
@@ -315,6 +327,7 @@
 
         document.getElementById('search').value = '';
         document.getElementById('filterFecha').value = `${y}-${m}-${d}`;
+        document.getElementById('filterHora').value = '';
         document.getElementById('filterEtiqueta').value = '';
         document.getElementById('filterTono').value = '';
         document.getElementById('filterTipoMedio').value = '';
@@ -328,7 +341,7 @@
         if (currentFilteredData.length === 0) return alert("No hay datos para descargar.");
         
         const dataParaExcel = currentFilteredData.map(row => ({
-            'Fecha Registro': row.marcaTemporal, // Se incluye para auditoría interna
+            'Fecha Registro': row.marcaTemporal, 
             'Fecha Noticia': row.fecha,
             'Titular': row.titular,
             'Medio': row.medio,
@@ -368,7 +381,6 @@
         });
     }
 
-    // Esta función recorta automáticamente la hora, dejándonos solo con la fecha para matemáticas exactas
     function parseExcelDate(dateStr) {
         if (!dateStr) return null;
         const clean = dateStr.split(' ')[0].trim();
@@ -379,6 +391,25 @@
         let y = parseInt(p[2], 10);
         if (y < 100) y += 2000;
         return new Date(y, m, d).getTime();
+    }
+
+    // Extrae la hora de la Marca Temporal y la convierte en minutos para compararla fácilmente
+    function getMinutesFromMarcaTemporal(marcaTemporalStr) {
+        if (!marcaTemporalStr) return -1;
+        const parts = marcaTemporalStr.trim().split(' ');
+        if (parts.length < 2) return -1;
+        const timePart = parts[1]; // ej: "11:22:37"
+        const timeParts = timePart.split(':');
+        const h = parseInt(timeParts[0], 10) || 0;
+        const m = parseInt(timeParts[1], 10) || 0;
+        
+        let offset = 0;
+        if (parts.length > 2) { // Por si Excel exporta con AM/PM
+            const ampm = parts[2].toLowerCase();
+            if (ampm.includes('p') && h < 12) offset = 12 * 60;
+            if (ampm.includes('a') && h === 12) offset = -12 * 60;
+        }
+        return (h * 60) + m + offset;
     }
 
     function updateDynamicEtiquetas(dataParaEsaFecha, etiquetaActual) {
@@ -400,7 +431,15 @@
         const tono = document.getElementById('filterTono').value;
         const tipoMedio = document.getElementById('filterTipoMedio').value;
         const fechaInput = document.getElementById('filterFecha').value; 
+        const horaInput = document.getElementById('filterHora').value; 
         const etiquetaPrevia = document.getElementById('filterEtiqueta').value;
+
+        // Convertir la hora seleccionada en el filtro a minutos
+        let minMinutes = -1;
+        if (horaInput) {
+            const [hInput, mInput] = horaInput.split(':');
+            minMinutes = parseInt(hInput, 10) * 60 + parseInt(mInput, 10);
+        }
 
         // Mostrar el botón de Ayer y cambiar el texto
         const btnAyerContainer = document.getElementById('btn-ayer-container');
@@ -413,7 +452,7 @@
         }
 
         const dateFiltered = allData.filter(row => {
-            const rowTime = parseExcelDate(row.fecha); // Fecha de la noticia
+            const rowTime = parseExcelDate(row.fecha); 
             if (!rowTime) return true;
 
             const rowDateObj = new Date(rowTime);
@@ -422,14 +461,12 @@
 
             if (currentMode === 'hoy') {
                 if (rowTime === hoyTime) {
-                    return true; // Pasa todas las publicadas Hoy
+                    return true; 
                 }
-                
-                // Si el botón está activo, revisa la fecha de publicación y la de registro
                 if (mostrarAyer && rowTime === ayerTime) {
-                    const rowRegistroTime = parseExcelDate(row.marcaTemporal); // Fecha de envío de formulario
+                    const rowRegistroTime = parseExcelDate(row.marcaTemporal); 
                     if (rowRegistroTime === hoyTime) {
-                        return true; // Es de ayer, pero la registraron Hoy
+                        return true; 
                     }
                 }
                 return false;
@@ -454,8 +491,17 @@
             const matchTono = tono === "" || row.tono === tono;
             const matchTipoMedio = tipoMedio === "" || row.tipoMedio === tipoMedio;
             const matchEtiqueta = etiquetaActual === "" || row.etiqueta === etiquetaActual;
+            
+            // Lógica para filtrar por HORA DE REGISTRO
+            let matchHora = true;
+            if (minMinutes >= 0) {
+                const rowMins = getMinutesFromMarcaTemporal(row.marcaTemporal);
+                if (rowMins !== -1 && rowMins < minMinutes) {
+                    matchHora = false;
+                }
+            }
 
-            return matchSearch && matchTono && matchTipoMedio && matchEtiqueta;
+            return matchSearch && matchTono && matchTipoMedio && matchEtiqueta && matchHora;
         });
         
         currentFilteredData = finalFiltered;
@@ -514,9 +560,19 @@
                 `<a href="${row.link}" target="_blank" class="btn-link">Abrir Nota</a>` : 
                 `<span style="color:#64748b; font-size:11px; display:block; text-align:center; padding:6px 0;">Sin Enlace</span>`;
 
+            // Extraemos solo la hora de registro para mostrarla disimuladamente (Opcional, pero muy útil si filtramos por hora)
+            let horaRegistro = "";
+            if(row.marcaTemporal) {
+                const parts = row.marcaTemporal.trim().split(' ');
+                if(parts.length >= 2) horaRegistro = `<div style="font-size:9px; color:#94a3b8; margin-top:3px;">Registrado: ${parts[1]}</div>`;
+            }
+
             tbody.innerHTML += `
                 <tr style="${rowStyle}">
-                    <td data-label="Fecha" style="font-weight:700;">${row.fecha}</td>
+                    <td data-label="Fecha">
+                        <div style="font-weight:700;">${row.fecha}</div>
+                        ${horaRegistro}
+                    </td>
                     <td data-label="Noticia">
                         <div style="font-weight:800; margin-bottom:5px; font-size:13px;">${row.titular}</div>
                         <div style="font-size:10px; color:var(--primary); font-weight:800; text-transform:uppercase;">${row.medio} <span style="color:#64748b;">(${row.tipoMedio})</span></div>
