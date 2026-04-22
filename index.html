@@ -214,7 +214,6 @@
 
     async function init() {
         try {
-            // Anti-caché integrado para reflejar cambios rápido
             const cacheBusterUrl = csv_url + '&t=' + new Date().getTime();
             const response = await fetch(cacheBusterUrl);
             
@@ -287,6 +286,10 @@
         const m = String(hoyDate.getMonth() + 1).padStart(2, '0');
         const d = String(hoyDate.getDate()).padStart(2, '0');
         document.getElementById('filterFecha').value = `${y}-${m}-${d}`;
+        
+        // ¡LA SOLUCIÓN! Limpiar la hora para que muestre verdaderamente TODO lo de hoy
+        document.getElementById('filterHora').value = ''; 
+        
         currentMode = 'hoy';
         mostrarAyer = false; 
         runFilters();
@@ -294,6 +297,7 @@
 
     function verMes() {
         document.getElementById('filterFecha').value = '';
+        document.getElementById('filterHora').value = ''; // Opcional, también limpiamos aquí por si acaso
         currentMode = 'month';
         mostrarAyer = false;
         runFilters();
@@ -393,14 +397,12 @@
         return new Date(y, m, d).getTime();
     }
 
-    // Convertimos la marca temporal a minutos reales para hacer la matemática exacta
     function getMinutesFromMarcaTemporal(marcaTemporalStr) {
         if (!marcaTemporalStr) return -1;
-        // Separamos usando espacios para evitar fallos si el Excel viene con formato extraño
         const parts = marcaTemporalStr.trim().split(/\s+/);
         if (parts.length < 2) return -1;
         
-        const timePart = parts[1]; // ej: "11:22:37"
+        const timePart = parts[1]; 
         const timeParts = timePart.split(':');
         let h = parseInt(timeParts[0], 10);
         let m = parseInt(timeParts[1], 10);
@@ -408,7 +410,6 @@
         if (isNaN(h)) return -1;
         if (isNaN(m)) m = 0;
         
-        // Ajuste en caso de que exporte en formato de 12 horas AM/PM
         let offset = 0;
         const fullStr = marcaTemporalStr.toLowerCase();
         if (fullStr.includes('p.m.') || fullStr.includes('pm') || fullStr.includes('p. m.')) {
@@ -442,7 +443,6 @@
         const horaInput = document.getElementById('filterHora').value; 
         const etiquetaPrevia = document.getElementById('filterEtiqueta').value;
 
-        // Convertir la hora seleccionada en el filtro a minutos
         let minMinutes = -1;
         if (horaInput) {
             const [hInput, mInput] = horaInput.split(':');
@@ -499,11 +499,9 @@
             const matchTipoMedio = tipoMedio === "" || row.tipoMedio === tipoMedio;
             const matchEtiqueta = etiquetaActual === "" || row.etiqueta === etiquetaActual;
             
-            // Lógica para filtrar por HORA DE REGISTRO revisada
             let matchHora = true;
             if (minMinutes >= 0) {
                 const rowMins = getMinutesFromMarcaTemporal(row.marcaTemporal);
-                // Si rowMins es -1, significa que no se pudo leer la hora y lo dejamos pasar por seguridad
                 if (rowMins !== -1 && rowMins < minMinutes) {
                     matchHora = false;
                 }
@@ -541,7 +539,6 @@
                           currentMode === 'specific' ? "Mostrando Fecha Seleccionada" : 
                           currentMode === 'month' ? "Mostrando: Este Mes" : "Mostrando Datos";
         
-        // Este cambio confirmará al usuario que su filtro de hora sí está trabajando
         if (horaInput) {
             textoConteo += ` (Desde las ${horaInput})`;
         }
