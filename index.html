@@ -154,7 +154,7 @@
         </div>
         <div>
             <label>Hora de Registro (Desde)</label>
-            <input type="time" id="filterHora" onchange="runFilters()" title="Filtrar notas registradas de esta hora en adelante">
+            <input type="time" id="filterHora" oninput="runFilters()" title="Filtrar notas registradas de esta hora en adelante">
         </div>
         <div>
             <label>Etiqueta / Tema</label>
@@ -393,22 +393,30 @@
         return new Date(y, m, d).getTime();
     }
 
-    // Extrae la hora de la Marca Temporal y la convierte en minutos para compararla fácilmente
+    // Convertimos la marca temporal a minutos reales para hacer la matemática exacta
     function getMinutesFromMarcaTemporal(marcaTemporalStr) {
         if (!marcaTemporalStr) return -1;
-        const parts = marcaTemporalStr.trim().split(' ');
+        // Separamos usando espacios para evitar fallos si el Excel viene con formato extraño
+        const parts = marcaTemporalStr.trim().split(/\s+/);
         if (parts.length < 2) return -1;
+        
         const timePart = parts[1]; // ej: "11:22:37"
         const timeParts = timePart.split(':');
-        const h = parseInt(timeParts[0], 10) || 0;
-        const m = parseInt(timeParts[1], 10) || 0;
+        let h = parseInt(timeParts[0], 10);
+        let m = parseInt(timeParts[1], 10);
         
+        if (isNaN(h)) return -1;
+        if (isNaN(m)) m = 0;
+        
+        // Ajuste en caso de que exporte en formato de 12 horas AM/PM
         let offset = 0;
-        if (parts.length > 2) { // Por si Excel exporta con AM/PM
-            const ampm = parts[2].toLowerCase();
-            if (ampm.includes('p') && h < 12) offset = 12 * 60;
-            if (ampm.includes('a') && h === 12) offset = -12 * 60;
+        const fullStr = marcaTemporalStr.toLowerCase();
+        if (fullStr.includes('p.m.') || fullStr.includes('pm') || fullStr.includes('p. m.')) {
+            if (h < 12) offset = 12 * 60;
+        } else if (fullStr.includes('a.m.') || fullStr.includes('am') || fullStr.includes('a. m.')) {
+            if (h === 12) h = 0;
         }
+        
         return (h * 60) + m + offset;
     }
 
@@ -441,7 +449,6 @@
             minMinutes = parseInt(hInput, 10) * 60 + parseInt(mInput, 10);
         }
 
-        // Mostrar el botón de Ayer y cambiar el texto
         const btnAyerContainer = document.getElementById('btn-ayer-container');
         const btnAyer = document.getElementById('btn-ayer');
         if (currentMode === 'hoy') {
@@ -492,10 +499,11 @@
             const matchTipoMedio = tipoMedio === "" || row.tipoMedio === tipoMedio;
             const matchEtiqueta = etiquetaActual === "" || row.etiqueta === etiquetaActual;
             
-            // Lógica para filtrar por HORA DE REGISTRO
+            // Lógica para filtrar por HORA DE REGISTRO revisada
             let matchHora = true;
             if (minMinutes >= 0) {
                 const rowMins = getMinutesFromMarcaTemporal(row.marcaTemporal);
+                // Si rowMins es -1, significa que no se pudo leer la hora y lo dejamos pasar por seguridad
                 if (rowMins !== -1 && rowMins < minMinutes) {
                     matchHora = false;
                 }
@@ -519,10 +527,10 @@
         document.getElementById('count-neu').innerText = countNeu;
         document.getElementById('count-neg').innerText = countNeg;
 
-        renderTable(finalFiltered);
+        renderTable(finalFiltered, horaInput);
     }
 
-    function renderTable(data) {
+    function renderTable(data, horaInput) {
         const tbody = document.getElementById('table-body');
         const countBox = document.getElementById('data-count');
         tbody.innerHTML = '';
@@ -532,6 +540,11 @@
         let textoConteo = currentMode === 'hoy' ? (mostrarAyer ? "Mostrando: Hoy + Rezagos de ayer" : "Mostrando: Solo Hoy") : 
                           currentMode === 'specific' ? "Mostrando Fecha Seleccionada" : 
                           currentMode === 'month' ? "Mostrando: Este Mes" : "Mostrando Datos";
+        
+        // Este cambio confirmará al usuario que su filtro de hora sí está trabajando
+        if (horaInput) {
+            textoConteo += ` (Desde las ${horaInput})`;
+        }
         
         countBox.innerText = `${textoConteo}`;
 
@@ -560,10 +573,9 @@
                 `<a href="${row.link}" target="_blank" class="btn-link">Abrir Nota</a>` : 
                 `<span style="color:#64748b; font-size:11px; display:block; text-align:center; padding:6px 0;">Sin Enlace</span>`;
 
-            // Extraemos solo la hora de registro para mostrarla disimuladamente (Opcional, pero muy útil si filtramos por hora)
             let horaRegistro = "";
             if(row.marcaTemporal) {
-                const parts = row.marcaTemporal.trim().split(' ');
+                const parts = row.marcaTemporal.trim().split(/\s+/);
                 if(parts.length >= 2) horaRegistro = `<div style="font-size:9px; color:#94a3b8; margin-top:3px;">Registrado: ${parts[1]}</div>`;
             }
 
