@@ -54,6 +54,7 @@
         .btn-action { border: none; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; background: var(--accent); text-transform: uppercase; padding: 0 10px; transition: opacity 0.2s; }
         .btn-action:hover { opacity: 0.8; }
         .bg-gray { background: #64748b; }
+        .bg-purple { background: #8b5cf6; } /* Color para el nuevo botón especial */
 
         /* Estilos de Tabla Desktop */
         .table-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
@@ -148,6 +149,7 @@
             <label>Fecha</label>
             <div class="date-controls">
                 <button class="btn-action" onclick="setSoloHoy()" title="Noticias de hoy">Hoy</button>
+                <button class="btn-action bg-purple" onclick="setAyerYHoy()" title="Corte: Ayer tarde y Hoy">Ayer+Hoy</button>
                 <button class="btn-action bg-gray" onclick="verMes()" title="Noticias de este mes">Mes</button>
                 <input type="date" id="filterFecha" onchange="onFechaChange()">
             </div>
@@ -286,8 +288,6 @@
         const m = String(hoyDate.getMonth() + 1).padStart(2, '0');
         const d = String(hoyDate.getDate()).padStart(2, '0');
         document.getElementById('filterFecha').value = `${y}-${m}-${d}`;
-        
-        // ¡LA SOLUCIÓN! Limpiar la hora para que muestre verdaderamente TODO lo de hoy
         document.getElementById('filterHora').value = ''; 
         
         currentMode = 'hoy';
@@ -295,9 +295,18 @@
         runFilters();
     }
 
+    // NUEVA FUNCIÓN: Configura el modo Ayer + Hoy
+    function setAyerYHoy() {
+        document.getElementById('filterFecha').value = ''; // Borramos la fecha específica
+        document.getElementById('filterHora').value = '16:00'; // Ponemos 4 PM por defecto (puedes cambiarlo a mano si quieres)
+        currentMode = 'rango_ayer_hoy'; 
+        mostrarAyer = false; 
+        runFilters();
+    }
+
     function verMes() {
         document.getElementById('filterFecha').value = '';
-        document.getElementById('filterHora').value = ''; // Opcional, también limpiamos aquí por si acaso
+        document.getElementById('filterHora').value = ''; 
         currentMode = 'month';
         mostrarAyer = false;
         runFilters();
@@ -467,17 +476,17 @@
             const rM = rowDateObj.getMonth();
 
             if (currentMode === 'hoy') {
-                if (rowTime === hoyTime) {
-                    return true; 
-                }
+                if (rowTime === hoyTime) return true; 
                 if (mostrarAyer && rowTime === ayerTime) {
                     const rowRegistroTime = parseExcelDate(row.marcaTemporal); 
-                    if (rowRegistroTime === hoyTime) {
-                        return true; 
-                    }
+                    if (rowRegistroTime === hoyTime) return true; 
                 }
                 return false;
             } 
+            // NUEVO: Validar rango Ayer y Hoy
+            else if (currentMode === 'rango_ayer_hoy') {
+                return (rowTime === ayerTime || rowTime === hoyTime);
+            }
             else if (currentMode === 'specific' && fechaInput) {
                 const [yInput, mInput, dInput] = fechaInput.split('-');
                 const targetTime = new Date(parseInt(yInput), parseInt(mInput)-1, parseInt(dInput)).getTime();
@@ -502,8 +511,18 @@
             let matchHora = true;
             if (minMinutes >= 0) {
                 const rowMins = getMinutesFromMarcaTemporal(row.marcaTemporal);
-                if (rowMins !== -1 && rowMins < minMinutes) {
-                    matchHora = false;
+                const rowTime = parseExcelDate(row.fecha);
+                
+                // NUEVA LÓGICA: Si estamos en "Ayer + Hoy", la hora solo corta las noticias de AYER
+                if (currentMode === 'rango_ayer_hoy') {
+                    if (rowTime === ayerTime && rowMins !== -1 && rowMins < minMinutes) {
+                        matchHora = false;
+                    }
+                } else {
+                    // Lógica normal
+                    if (rowMins !== -1 && rowMins < minMinutes) {
+                        matchHora = false;
+                    }
                 }
             }
 
@@ -535,12 +554,18 @@
         
         const displayData = data.slice(0, 300); 
         
+        // Actualizamos el texto arriba a la derecha para que sepas qué estás viendo
         let textoConteo = currentMode === 'hoy' ? (mostrarAyer ? "Mostrando: Hoy + Rezagos de ayer" : "Mostrando: Solo Hoy") : 
+                          currentMode === 'rango_ayer_hoy' ? "Mostrando: Ayer y Hoy" :
                           currentMode === 'specific' ? "Mostrando Fecha Seleccionada" : 
                           currentMode === 'month' ? "Mostrando: Este Mes" : "Mostrando Datos";
         
         if (horaInput) {
-            textoConteo += ` (Desde las ${horaInput})`;
+            if (currentMode === 'rango_ayer_hoy') {
+                textoConteo += ` (Ayer desde las ${horaInput} y todo hoy)`;
+            } else {
+                textoConteo += ` (Desde las ${horaInput})`;
+            }
         }
         
         countBox.innerText = `${textoConteo}`;
@@ -570,10 +595,10 @@
                 `<a href="${row.link}" target="_blank" class="btn-link">Abrir Nota</a>` : 
                 `<span style="color:#64748b; font-size:11px; display:block; text-align:center; padding:6px 0;">Sin Enlace</span>`;
 
-          let horaRegistro = "";
+            let horaRegistro = "";
             if(row.marcaTemporal) {
                 const parts = row.marcaTemporal.trim().split(/\s+/);
-                // Usamos negro al 60% de opacidad y fuente más gruesa para que contraste con cualquier fondo
+                // Aquí ya está incluida la mejora visual de la hora que te comenté antes :)
                 if(parts.length >= 2) horaRegistro = `<div style="font-size:10px; color:rgba(0,0,0,0.65); font-weight:600; margin-top:4px;">Registrado: ${parts[1]}</div>`;
             }
 
