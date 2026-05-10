@@ -171,7 +171,7 @@
     
     let allData = [];
     let currentFilteredData = [];
-    let currentMode = 'hoy'; 
+    let currentMode = 'ayer_hoy'; 
     const hoyObj = new Date();
     const hoyTime = new Date(hoyObj.getFullYear(), hoyObj.getMonth(), hoyObj.getDate()).getTime();
     const ayerTime = hoyTime - (24 * 60 * 60 * 1000);
@@ -186,7 +186,6 @@
                 complete: function(results) {
                     const h = Object.keys(results.data[0]);
                     
-                    // CORRECCIÓN AQUÍ: Búsqueda de columnas a prueba de mayúsculas/minúsculas
                     const getCol = (str) => h.find(x => x.toUpperCase().includes(str));
                     
                     const cMarca = getCol('MARCA TEMPORAL');
@@ -209,11 +208,13 @@
                         resumen: (row[cRes] || '').trim(),
                         link: (row[cLin] || '#').trim(),
                         etiqueta: (row[cEti] || '').trim()
-                    })).filter(r => r.titular !== ""); // Si no encontraba la columna, titular era "", por eso se borraba todo.
+                    })).filter(r => r.titular !== ""); 
 
                     allData.reverse();
                     fillSelectors();
-                    setSoloHoy();
+                    
+                    // AQUI ESTÁ EL CAMBIO PRINCIPAL: Al abrir, carga Ayer + Hoy
+                    setAyerYHoy();
                 }
             });
         } catch (e) { alert("Error al cargar datos."); }
@@ -299,7 +300,8 @@
             let matchHora = true;
 
             if (currentMode === 'hoy') {
-                matchDate = (rowTime === hoyTime);
+                // CORRECCIÓN: Muestra lo publicado hoy O lo registrado hoy (rezagos de ayer)
+                matchDate = (rowTime === hoyTime || marcaTime === hoyTime);
             } else if (currentMode === 'ayer_hoy') {
                 matchDate = (rowTime === hoyTime || rowTime === ayerTime);
                 if (rowTime === ayerTime && marcaTime === ayerTime && minMin !== -1) {
