@@ -49,9 +49,9 @@
         label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block; }
         select, input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
         
-        .date-controls { display: flex; gap: 5px; }
-        .date-controls input { flex: 1; min-width: 0; }
-        .btn-action { border: none; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; background: var(--accent); text-transform: uppercase; padding: 0 10px; transition: opacity 0.2s; }
+        .date-controls { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+        .date-controls input[type="date"] { flex: 1; min-width: 130px; }
+        .btn-action { border: none; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; background: var(--accent); text-transform: uppercase; padding: 8px 10px; min-height: 38px; transition: opacity 0.2s; }
         .btn-action:hover { opacity: 0.8; }
         .bg-gray { background: #64748b; }
         .bg-purple { background: #8b5cf6; } /* Color para el nuevo botón especial */
@@ -71,6 +71,11 @@
         .btn-link:hover { background: #1d4ed8; }
 
         /* Responsivo para móviles */
+        @media (max-width: 600px) {
+            .date-controls { flex-wrap: wrap; }
+            .date-controls input[type="date"] { width: 100%; flex: none; }
+        }
+        
         @media (max-width: 768px) {
             .header-left { gap: 10px; }
             .header-logo { height: 26px; padding: 4px 6px; }
@@ -513,13 +518,15 @@
                 const rowMins = getMinutesFromMarcaTemporal(row.marcaTemporal);
                 const rowTime = parseExcelDate(row.fecha);
                 
-                // NUEVA LÓGICA: Si estamos en "Ayer + Hoy", la hora solo corta las noticias de AYER
+                // LÓGICA AYER+HOY: la hora solo corta noticias de AYER; las de HOY se muestran todas
                 if (currentMode === 'rango_ayer_hoy') {
-                    if (rowTime === ayerTime && rowMins !== -1 && rowMins < minMinutes) {
+                    const rowFechaVal = parseExcelDate(row.fecha);
+                    if (rowFechaVal === ayerTime && rowMins !== -1 && rowMins < minMinutes) {
                         matchHora = false;
                     }
+                    // Si es noticia de HOY, matchHora permanece true siempre
                 } else {
-                    // Lógica normal
+                    // Lógica normal para Hoy, Fecha específica, Mes
                     if (rowMins !== -1 && rowMins < minMinutes) {
                         matchHora = false;
                     }
