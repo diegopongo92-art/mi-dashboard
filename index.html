@@ -520,13 +520,12 @@
                 
                 // LÓGICA AYER+HOY: la hora solo corta noticias de AYER; las de HOY se muestran todas
                 if (currentMode === 'rango_ayer_hoy') {
-                    const rowFechaVal = parseExcelDate(row.fecha);
-                    if (rowFechaVal === ayerTime && rowMins !== -1 && rowMins < minMinutes) {
-                        matchHora = false;
-                    }
-                    // Si es noticia de HOY, matchHora permanece true siempre
+                    // En modo Ayer+Hoy: mostrar TODAS las noticias de ambos dias sin filtro de hora.
+                    // Las notas de ayer pueden haberse registrado hoy en la manana (marcaTemporal de hoy),
+                    // por eso NO usamos la hora de registro como filtro en este modo.
+                    matchHora = true;
                 } else {
-                    // Lógica normal para Hoy, Fecha específica, Mes
+                    // Logica normal para Hoy, Fecha especifica, Mes
                     if (rowMins !== -1 && rowMins < minMinutes) {
                         matchHora = false;
                     }
