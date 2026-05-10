@@ -7,10 +7,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
         :root { --primary: #002f80; --bg: #f1f5f9; --accent: #2563eb; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: #1e293b; }
         
+        /* Encabezado */
         header { background: var(--primary); padding: 15px 5%; box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         .header-left { display: flex; align-items: center; gap: 15px; }
         .header-logo { height: 40px; background-color: white; padding: 5px 10px; border-radius: 6px; object-fit: contain; }
@@ -18,46 +20,55 @@
         
         .main { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
 
+        /* Botones de Exportación */
         .actions-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: flex-end; }
-        .btn-extra { padding: 10px 15px; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; color: white; text-transform: uppercase; }
+        .btn-extra { padding: 10px 15px; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; color: white; text-transform: uppercase; transition: transform 0.1s; }
+        .btn-extra:active { transform: scale(0.95); }
         .btn-reset { background: #64748b; }
         .btn-excel { background: #10b981; }
         .btn-pdf { background: #ef4444; }
 
+        /* Tarjetas de Resumen */
         .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
-        .card { padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .card-title { font-size: 11px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; color: #475569; }
+        .card { padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; background: white; }
+        .card-title { font-size: 11px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; color: #64748b; }
         .card-value { font-size: 28px; font-weight: 800; }
-        .card.positiva { background: #86efac; } .card.neutra { background: #fde047; } .card.negativa { background: #fc8181; }
+        .card.positiva { background: #86efac; border-color: #4ade80; }
+        .card.neutra { background: #fde047; border-color: #facc15; }
+        .card.negativa { background: #fc8181; border-color: #f87171; }
         
-        .controls { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+        /* Panel de Controles */
+        .controls { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
         label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block; }
-        select, input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; box-sizing: border-box; outline: none; }
         
-        /* Estilo especial para el selector de fecha */
-        input[type="date"] { cursor: pointer; background: #f8fafc; font-weight: 600; color: #1e293b; border: 2px solid #e2e8f0; }
-        input[type="date"]:hover { border-color: var(--accent); }
-
-        .date-group { display: flex; flex-direction: column; gap: 8px; }
-        .date-buttons { display: flex; gap: 4px; }
-        .btn-action { flex: 1; border: none; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; background: var(--accent); text-transform: uppercase; padding: 8px 5px; }
+        /* Botones de Fecha y Atajos */
+        .btn-action { border: none; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; background: var(--accent); text-transform: uppercase; padding: 10px 5px; transition: opacity 0.2s; }
+        .btn-action:hover { opacity: 0.8; }
         .bg-gray { background: #64748b; }
         .bg-purple { background: #8b5cf6; }
+        input[type="date"] { cursor: pointer; background: #f8fafc; font-weight: 700; border: 2px solid #e2e8f0; color: #1e293b; }
 
+        /* Estilos de Tabla */
         .table-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; border-bottom: 1px solid #eee; }
-        td { padding: 15px; border-bottom: 1px solid #e2e8f0; font-size: 13px; vertical-align: top; }
+        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; border-bottom: 1px solid #eee; text-transform: uppercase; }
+        td { padding: 15px; border-bottom: 1px solid #e2e8f0; font-size: 13px; vertical-align: top; line-height: 1.4; color: #0f172a; }
         
         .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: white; display: inline-block; }
-        .badge-positivo { background: #15803d; } .badge-negativo { background: #b91c1c; } .badge-neutro { background: #a16207; }
-        .btn-link { color: white; background: var(--accent); text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; }
+        .badge-positivo { background: #15803d; }
+        .badge-negativo { background: #b91c1c; }
+        .badge-neutro { background: #a16207; }
+        
+        .btn-link { color: white; background: var(--accent); text-decoration: none; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; text-align: center; }
 
+        /* Móvil */
         @media (max-width: 768px) {
             .summary-cards { grid-template-columns: repeat(2, 1fr); }
             thead { display: none; }
-            tr { display: block; border: 1px solid #cbd5e1; margin-bottom: 10px; padding: 10px; border-radius: 10px; }
-            td { display: block; width: 100% !important; padding: 5px 0; border: none; }
+            tr { display: block; border: 1px solid #cbd5e1; margin-bottom: 12px; padding: 12px; border-radius: 10px; background: white !important; }
+            td { display: block; width: 100% !important; padding: 6px 0; border: none; text-align: left !important; }
+            .btn-link { width: 100%; box-sizing: border-box; margin-top: 5px; }
         }
     </style>
 </head>
@@ -71,10 +82,11 @@
             <div class="header-credits">Desarrollado por Diego Pongo y Mariel Ramírez</div>
         </div>
     </div>
-    <div id="data-count" style="font-size: 11px; color: #cbd5e1;">Cargando...</div>
+    <div id="data-count" style="font-size: 11px; color: #cbd5e1; text-align: right; font-weight: 600;">Sincronizando...</div>
 </header>
 
 <div class="main" id="dashboard-content">
+    
     <div class="actions-bar" data-html2canvas-ignore="true">
         <button class="btn-extra btn-reset" onclick="resetFilters()">🔄 Restablecer</button>
         <button class="btn-extra btn-excel" onclick="downloadExcel()">📊 Excel</button>
@@ -82,37 +94,57 @@
     </div>
 
     <div class="summary-cards">
-        <div class="card"><div class="card-title">Menciones</div><div class="card-value" id="count-total">0</div></div>
-        <div class="card positiva"><div class="card-title">Positivas</div><div class="card-value" id="count-pos">0</div></div>
-        <div class="card neutra"><div class="card-title">Neutras</div><div class="card-value" id="count-neu">0</div></div>
-        <div class="card negativa"><div class="card-title">Negativas</div><div class="card-value" id="count-neg">0</div></div>
+        <div class="card">
+            <div class="card-title">Menciones</div>
+            <div class="card-value" id="count-total">0</div>
+        </div>
+        <div class="card positiva">
+            <div class="card-title">Positivas</div>
+            <div class="card-value" id="count-pos">0</div>
+        </div>
+        <div class="card neutra">
+            <div class="card-title">Neutras</div>
+            <div class="card-value" id="count-neu">0</div>
+        </div>
+        <div class="card negativa">
+            <div class="card-title">Negativas</div>
+            <div class="card-value" id="count-neg">0</div>
+        </div>
     </div>
 
     <div class="controls" data-html2canvas-ignore="true">
         <div>
-            <label>Buscar</label>
-            <input type="text" id="search" placeholder="Escribe para filtrar..." onkeyup="runFilters()">
+            <label>Buscador Inteligente</label>
+            <input type="text" id="search" placeholder="Ej: Alcalde, Obras, Lima..." onkeyup="runFilters()">
         </div>
-        <div class="date-group">
-            <label>Seleccionar Fecha / Atajos</label>
-            <div class="date-buttons">
-                <button class="btn-action" onclick="setSoloHoy()">Hoy</button>
-                <button class="btn-action bg-purple" onclick="setAyerYHoy()">Ayer+Hoy</button>
-                <button class="btn-action bg-gray" onclick="verTodoElMes()">Mes</button>
+        
+        <div>
+            <label>Fecha y Atajos</label>
+            <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                <button class="btn-action" onclick="setSoloHoy()" style="flex:1;">Hoy</button>
+                <button class="btn-action bg-purple" onclick="setAyerYHoy()" style="flex:1;">Ayer+Hoy</button>
+                <button class="btn-action bg-gray" onclick="verTodoElMes()" style="flex:1;">Mes</button>
             </div>
             <input type="date" id="filterFecha" onchange="onFechaChange()" onclick="this.showPicker()">
         </div>
+
         <div>
-            <label>Corte de Hora (Desde)</label>
-            <input type="time" id="filterHora" oninput="runFilters()">
+            <label>Corte de Hora (Registro)</label>
+            <input type="time" id="filterHora" oninput="runFilters()" title="Filtra por la hora en que se subió la noticia">
         </div>
+
         <div>
-            <label>Tema</label>
-            <select id="filterEtiqueta" onchange="runFilters()"><option value="">Todos</option></select>
+            <label>Tema / Etiqueta</label>
+            <select id="filterEtiqueta" onchange="runFilters()">
+                <option value="">Todos los temas</option>
+            </select>
         </div>
+
         <div>
-            <label>Tono</label>
-            <select id="filterTono" onchange="runFilters()"><option value="">Todos</option></select>
+            <label>Tono de Imagen</label>
+            <select id="filterTono" onchange="runFilters()">
+                <option value="">Todos los tonos</option>
+            </select>
         </div>
     </div>
 
@@ -127,67 +159,75 @@
                     <th style="width: 10%;">Enlace</th>
                 </tr>
             </thead>
-            <tbody id="table-body"></tbody>
+            <tbody id="table-body">
+                <tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b;">Cargando base de datos...</td></tr>
+            </tbody>
         </table>
     </div>
 </div>
 
 <script>
     const csv_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2khLH7C3lCFCIV3ss1U5AV4SOL922Sld2rnPhSayp39VqgtlBV8ey63dxgCbur1nHiK-6CfNKB2B-/pub?gid=817460174&single=true&output=csv';
+    
     let allData = [];
-    const hoyDate = new Date();
-    const hoyTime = new Date(hoyDate.getFullYear(), hoyDate.getMonth(), hoyDate.getDate()).getTime();
+    let currentMode = 'hoy'; // hoy, ayer_hoy, mes, especifica
+    const hoyObj = new Date();
+    const hoyTime = new Date(hoyObj.getFullYear(), hoyObj.getMonth(), hoyObj.getDate()).getTime();
     const ayerTime = hoyTime - (24 * 60 * 60 * 1000);
-    let currentMode = 'hoy';
 
+    // 1. Cargar Datos
     async function init() {
         try {
-            const response = await fetch(csv_url + '&t=' + new Date().getTime());
-            const csvText = await response.text();
-            Papa.parse(csvText, {
+            const resp = await fetch(csv_url + '&t=' + new Date().getTime());
+            const text = await resp.text();
+            Papa.parse(text, {
                 header: true,
                 skipEmptyLines: true,
                 complete: function(results) {
-                    const headers = Object.keys(results.data[0]);
-                    // Mapeo dinámico de columnas
-                    const cMarca = headers.find(h => h.includes('MARCA TEMPORAL'));
-                    const cFecha = headers.find(h => h.includes('FECHA DE PUBLICACION'));
-                    const cTitular = headers.find(h => h.includes('TITULAR'));
-                    const cMedio = headers.find(h => h.includes('NOMBRE DEL MEDIO'));
-                    const cTono = headers.find(h => h.includes('CRITERIO'));
-                    const cResumen = headers.find(h => h.includes('RESUMEN'));
-                    const cLink = headers.find(h => h.includes('LINK'));
-                    const cEtiqueta = headers.find(h => h.includes('ETIQUETA') || h.includes('TEMA'));
+                    const h = Object.keys(results.data[0]);
+                    const cMarca = h.find(x => x.includes('MARCA TEMPORAL'));
+                    const cFecha = h.find(x => x.includes('FECHA DE PUBLICACION'));
+                    const cTit = h.find(x => x.includes('TITULAR'));
+                    const cMed = h.find(x => x.includes('NOMBRE DEL MEDIO'));
+                    const cTon = h.find(x => x.includes('CRITERIO'));
+                    const cRes = h.find(x => x.includes('RESUMEN'));
+                    const cLin = h.find(x => x.includes('LINK'));
+                    const cEti = h.find(x => x.includes('ETIQUETA') || x.includes('TEMA'));
 
                     allData = results.data.map(row => ({
-                        marcaTemporal: (row[cMarca] || '').trim(),
+                        marca: (row[cMarca] || '').trim(),
                         fecha: (row[cFecha] || '').trim(),
-                        titular: (row[cTitular] || '').trim(),
-                        medio: (row[cMedio] || '').trim(),
-                        tono: (row[cTono] || '').trim(),
-                        resumen: (row[cResumen] || '').trim(),
-                        link: (row[cLink] || '#').trim(),
-                        etiqueta: (row[cEtiqueta] || '').trim()
+                        titular: (row[cTit] || '').trim(),
+                        medio: (row[cMed] || '').trim(),
+                        tono: (row[cTon] || '').trim(),
+                        resumen: (row[cRes] || '').trim(),
+                        link: (row[cLin] || '#').trim(),
+                        etiqueta: (row[cEti] || '').trim()
                     })).filter(r => r.titular !== "");
 
                     allData.reverse();
-                    fillStaticFilters();
+                    fillSelectors();
                     setSoloHoy();
                 }
             });
-        } catch (e) { console.error(e); }
+        } catch (e) { alert("Error al cargar datos."); }
     }
 
-    function fillStaticFilters() {
+    // 2. Llenar Selectores
+    function fillSelectors() {
         const tonos = [...new Set(allData.map(r => r.tono))].filter(Boolean).sort();
         const etiquetas = [...new Set(allData.map(r => r.etiqueta))].filter(Boolean).sort();
-        tonos.forEach(t => document.getElementById('filterTono').appendChild(new Option(t, t)));
-        etiquetas.forEach(e => document.getElementById('filterEtiqueta').appendChild(new Option(e, e)));
+        
+        const selTono = document.getElementById('filterTono');
+        const selEti = document.getElementById('filterEtiqueta');
+        
+        tonos.forEach(t => selTono.appendChild(new Option(t, t)));
+        etiquetas.forEach(e => selEti.appendChild(new Option(e, e)));
     }
 
-    // ATAJOS
+    // 3. Atajos de Fecha
     function setSoloHoy() {
-        const y = hoyDate.getFullYear(), m = String(hoyDate.getMonth()+1).padStart(2,'0'), d = String(hoyDate.getDate()).padStart(2,'0');
+        const y = hoyObj.getFullYear(), m = String(hoyObj.getMonth()+1).padStart(2,'0'), d = String(hoyObj.getDate()).padStart(2,'0');
         document.getElementById('filterFecha').value = `${y}-${m}-${d}`;
         document.getElementById('filterHora').value = '';
         currentMode = 'hoy';
@@ -195,7 +235,7 @@
     }
 
     function setAyerYHoy() {
-        document.getElementById('filterFecha').value = ''; 
+        document.getElementById('filterFecha').value = '';
         document.getElementById('filterHora').value = '';
         currentMode = 'ayer_hoy';
         runFilters();
@@ -208,71 +248,63 @@
         runFilters();
     }
 
-    // Cuando el usuario cambia la fecha manualmente en el calendario
     function onFechaChange() {
-        const val = document.getElementById('filterFecha').value;
-        if (val) {
-            currentMode = 'especifica';
-        } else {
-            currentMode = 'mes';
-        }
+        if(document.getElementById('filterFecha').value) currentMode = 'especifica';
         runFilters();
     }
 
-    function parseExcelDate(dateStr) {
-        if (!dateStr) return null;
-        const p = dateStr.split(' ')[0].split('/');
+    // 4. Utilidades de Fecha/Hora
+    function parseDate(str) {
+        if(!str) return null;
+        const p = str.split(' ')[0].split('/');
         if(p.length !== 3) return null;
-        const d = parseInt(p[0]), m = parseInt(p[1]) - 1, y = p[2].length < 4 ? 2000 + parseInt(p[2]) : parseInt(p[2]);
+        const d = parseInt(p[0]), m = parseInt(p[1])-1, y = p[2].length<4 ? 2000+parseInt(p[2]):parseInt(p[2]);
         return new Date(y, m, d).getTime();
     }
 
-    function getMinutes(marcaStr) {
-        if (!marcaStr) return -1;
-        const parts = marcaStr.split(/\s+/);
-        if(parts.length < 2) return -1;
-        const timeParts = parts[1].split(':');
-        let h = parseInt(timeParts[0]), m = parseInt(timeParts[1]);
-        let offset = 0;
-        if(marcaStr.toLowerCase().includes('p.m.') && h < 12) offset = 720;
-        if(marcaStr.toLowerCase().includes('a.m.') && h === 12) h = 0;
-        return (h * 60) + m + offset;
+    function getMins(str) {
+        if(!str || !str.includes(':')) return -1;
+        const parts = str.split(/\s+/);
+        const time = parts[1] || parts[0];
+        const [hStr, mStr] = time.split(':');
+        let h = parseInt(hStr), m = parseInt(mStr);
+        if(str.toLowerCase().includes('p.m.') && h < 12) h += 12;
+        if(str.toLowerCase().includes('a.m.') && h === 12) h = 0;
+        return (h * 60) + m;
     }
 
+    // 5. Motor de Filtrado
     function runFilters() {
         const search = document.getElementById('search').value.toLowerCase();
         const tono = document.getElementById('filterTono').value;
         const etiqueta = document.getElementById('filterEtiqueta').value;
-        const horaInput = document.getElementById('filterHora').value;
+        const horaVal = document.getElementById('filterHora').value;
         const fechaVal = document.getElementById('filterFecha').value;
         
         let minMin = -1;
-        if(horaInput) { const [h, m] = horaInput.split(':').map(Number); minMin = h * 60 + m; }
+        if(horaVal) { const [h, m] = horaVal.split(':').map(Number); minMin = h * 60 + m; }
 
         const filtered = allData.filter(r => {
-            const rowTime = parseExcelDate(r.fecha);
-            const marcaTime = parseExcelDate(r.marcaTemporal);
-            const rowMin = getMinutes(r.marcaTemporal);
+            const rowTime = parseDate(r.fecha);
+            const marcaTime = parseDate(r.marca);
+            const rowMin = getMins(r.marca);
             
             let matchDate = false;
             let matchHora = true;
 
-            // Lógica de Modos
             if (currentMode === 'hoy') {
                 matchDate = (rowTime === hoyTime);
             } else if (currentMode === 'ayer_hoy') {
                 matchDate = (rowTime === hoyTime || rowTime === ayerTime);
-                // Filtro de hora especial: Solo afecta a las noticias de ayer registradas ayer.
+                // Filtro de hora solo aplica a lo que se registró ayer
                 if (rowTime === ayerTime && marcaTime === ayerTime && minMin !== -1) {
                     if (rowMin < minMin) matchHora = false;
                 }
             } else if (currentMode === 'especifica') {
                 const [y, m, d] = fechaVal.split('-').map(Number);
-                const target = new Date(y, m-1, d).getTime();
-                matchDate = (rowTime === target);
-                if (minMin !== -1 && rowMin < minMin) matchHora = false;
-            } else if (currentMode === 'mes') {
-                matchDate = true; // Muestra todo
+                matchDate = (rowTime === new Date(y, m-1, d).getTime());
+            } else {
+                matchDate = true;
             }
 
             const matchSearch = !search || (r.titular + r.resumen + r.medio).toLowerCase().includes(search);
@@ -282,53 +314,58 @@
             return matchDate && matchHora && matchSearch && matchTono && matchEtiqueta;
         });
 
-        renderTable(filtered);
+        render(filtered);
     }
 
-    function renderTable(data) {
+    // 6. Renderizar Tabla
+    function render(data) {
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = '';
-        let pos = 0, neu = 0, neg = 0;
+        let p=0, n=0, neg=0;
 
         data.forEach(r => {
-            const tLow = r.tono.toLowerCase();
-            let cls = 'badge-neutro', bg = '#fde047';
-            if(tLow.includes('pos')) { cls='badge-positivo'; bg='#86efac'; pos++; }
-            else if(tLow.includes('neg')) { cls='badge-negativo'; bg='#fc8181'; neg++; }
-            else neu++;
+            const t = r.tono.toLowerCase();
+            let cls='badge-neutro', bg='#fde047';
+            if(t.includes('pos')){ cls='badge-positivo'; bg='#86efac'; p++; }
+            else if(t.includes('neg')){ cls='badge-negativo'; bg='#fc8181'; neg++; }
+            else n++;
 
-            const timeStr = r.marcaTemporal.split(' ')[1] || '';
-            tbody.innerHTML += `<tr style="background:${bg}">
-                <td><b>${r.fecha}</b><br><small style="color:rgba(0,0,0,0.6);font-weight:700">Reg: ${timeStr}</small></td>
-                <td><b>${r.titular}</b><br><small style="text-transform:uppercase; color:var(--primary); font-weight:700">${r.medio}</small></td>
-                <td><span class="badge ${cls}">${r.tono}</span></td>
-                <td style="font-weight:500">${r.resumen}</td>
-                <td><a href="${r.link}" target="_blank" class="btn-link">Ver Link</a></td>
-            </tr>`;
+            const regTime = r.marca.split(' ')[1] || '';
+            
+            tbody.innerHTML += `
+                <tr style="background:${bg}">
+                    <td><b>${r.fecha}</b><br><small style="opacity:0.7">Reg: ${regTime}</small></td>
+                    <td><b>${r.titular}</b><br><small style="color:var(--primary); font-weight:700; text-transform:uppercase;">${r.medio}</small></td>
+                    <td><span class="badge ${cls}">${r.tono}</span></td>
+                    <td style="font-weight:500">${r.resumen}</td>
+                    <td style="text-align:center;"><a href="${r.link}" target="_blank" class="btn-link">Ver Nota</a></td>
+                </tr>`;
         });
 
         document.getElementById('count-total').innerText = data.length;
-        document.getElementById('count-pos').innerText = pos;
-        document.getElementById('count-neu').innerText = neu;
+        document.getElementById('count-pos').innerText = p;
+        document.getElementById('count-neu').innerText = n;
         document.getElementById('count-neg').innerText = neg;
-        document.getElementById('data-count').innerText = `Resultados: ${data.length}`;
+        document.getElementById('data-count').innerText = `Mostrando ${data.length} resultados`;
     }
 
+    // 7. Funciones de Exportación
     function resetFilters() { location.reload(); }
-    
+
     function downloadExcel() {
-        const csvRows = [["Fecha", "Titular", "Medio", "Tono", "Resumen", "Link"]];
-        allData.forEach(r => csvRows.push([r.fecha, r.titular, r.medio, r.tono, r.resumen, r.link]));
-        const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + csvRows.map(e => e.join(",")).join("\n");
+        const rows = [["Fecha", "Titular", "Medio", "Tono", "Resumen", "Link"]];
+        allData.forEach(r => rows.push([r.fecha, r.titular, r.medio, r.tono, r.resumen, r.link]));
+        const csv = "data:text/csv;charset=utf-8,\uFEFF" + rows.map(e => e.join(",")).join("\n");
         const link = document.createElement("a");
-        link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", "reporte_semaforo.csv");
+        link.href = encodeURI(csv);
+        link.download = "reporte_semaforo_mml.csv";
         link.click();
     }
 
     function downloadPDF() {
         const element = document.getElementById('dashboard-content');
-        html2pdf().from(element).save('reporte_semaforo.pdf');
+        const opt = { margin: 0.2, filename: 'reporte_mml.pdf', image: {type:'jpeg', quality:0.98}, html2canvas: {scale:2}, jsPDF: {unit:'in', format:'a4', orientation:'landscape'} };
+        html2pdf().set(opt).from(element).save();
     }
 
     init();
