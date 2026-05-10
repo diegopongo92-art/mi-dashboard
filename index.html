@@ -54,7 +54,7 @@
         .btn-action { border: none; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; background: var(--accent); text-transform: uppercase; padding: 0 10px; transition: opacity 0.2s; }
         .btn-action:hover { opacity: 0.8; }
         .bg-gray { background: #64748b; }
-        .bg-purple { background: #8b5cf6; } /* Color para el nuevo botón especial */
+        .bg-purple { background: #8b5cf6; }
 
         /* Estilos de Tabla Desktop */
         .table-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
@@ -104,7 +104,7 @@
 
 <header>
     <div class="header-left">
-        <img src="643cae93-18fd-40de-9f6c-a08884372e18.png" alt="Logo Municipalidad de Lima" class="header-logo">
+        <img src="643cae93-18fd-40de-9f6c-a08884372e18.png" alt="Logo" class="header-logo">
         <div>
             <h1 style="font-size: 1.1rem; color: white; font-weight: 800; margin:0; line-height: 1.2;">SEMÁFORO DE MEDIOS MML</h1>
             <div class="header-credits">Desarrollado por Diego Pongo y Mariel Ramírez</div>
@@ -116,7 +116,7 @@
 <div class="main" id="dashboard-content">
     
     <div class="actions-bar" data-html2canvas-ignore="true">
-        <button class="btn-extra btn-reset" onclick="resetFilters()">🔄 Restablecer Filtros</button>
+        <button class="btn-extra btn-reset" onclick="resetFilters()">🔄 Restablecer</button>
         <button class="btn-extra btn-excel" onclick="downloadExcel()">📊 Descargar Excel</button>
         <button class="btn-extra btn-pdf" onclick="downloadPDF()">📄 Descargar PDF</button>
     </div>
@@ -142,14 +142,14 @@
 
     <div class="controls" data-html2canvas-ignore="true">
         <div>
-            <label>Buscar (Titular o Resumen)</label>
+            <label>Buscar</label>
             <input type="text" id="search" placeholder="Ej. Alcalde, Obras..." onkeyup="runFilters()">
         </div>
         <div>
-            <label>Fecha</label>
+            <label>Fecha y Atajos</label>
             <div class="date-controls">
                 <button class="btn-action" onclick="setSoloHoy()" title="Noticias de hoy">Hoy</button>
-                <button class="btn-action bg-purple" onclick="setAyerYHoy()" title="Corte: Ayer tarde y Hoy">Ayer+Hoy</button>
+                <button class="btn-action bg-purple" onclick="setAyerYHoy()" title="Corte: Ayer y Hoy">Ayer+Hoy</button>
                 <button class="btn-action bg-gray" onclick="verMes()" title="Noticias de este mes">Mes</button>
                 <input type="date" id="filterFecha" onchange="onFechaChange()">
             </div>
@@ -194,12 +194,6 @@
             </tbody>
         </table>
     </div>
-
-    <div id="btn-ayer-container" style="text-align: center; margin-top: 15px; margin-bottom: 30px; display: none;" data-html2canvas-ignore="true">
-        <button id="btn-ayer" class="btn-action bg-gray" style="padding: 10px 20px; font-size: 12px; border-radius: 8px;" onclick="toggleAyer()">
-            ➖ Ocultar notas de ayer (registradas hoy)
-        </button>
-    </div>
 </div>
 
 <script>
@@ -212,7 +206,6 @@
     const ayerTime = hoyTime - (24 * 60 * 60 * 1000);
     
     let currentMode = 'hoy'; 
-    let mostrarAyer = true; 
 
     async function init() {
         try {
@@ -259,12 +252,7 @@
                     allData.reverse(); 
                     generateStaticFilters(allData);
                     
-                    const y = hoyDate.getFullYear();
-                    const m = String(hoyDate.getMonth() + 1).padStart(2, '0');
-                    const d = String(hoyDate.getDate()).padStart(2, '0');
-                    document.getElementById('filterFecha').value = `${y}-${m}-${d}`;
-
-                    runFilters();
+                    setSoloHoy(); // Iniciamos por defecto en modo Hoy
                 }
             });
         } catch (error) {
@@ -275,12 +263,15 @@
     function generateStaticFilters(data) {
         const tonos = [...new Set(data.map(row => row.tono).filter(t => t !== ""))].sort();
         const tiposMedio = [...new Set(data.map(row => row.tipoMedio).filter(m => m !== ""))].sort();
+        const etiquetas = [...new Set(data.map(row => row.etiqueta).filter(e => e !== ""))].sort();
 
         const selectTono = document.getElementById('filterTono');
         const selectTipoMedio = document.getElementById('filterTipoMedio');
+        const selectEtiqueta = document.getElementById('filterEtiqueta');
 
         tonos.forEach(t => { selectTono.appendChild(new Option(t, t)); });
         tiposMedio.forEach(t => { selectTipoMedio.appendChild(new Option(t, t)); });
+        etiquetas.forEach(e => { selectEtiqueta.appendChild(new Option(e, e)); });
     }
 
     function setSoloHoy() {
@@ -291,16 +282,13 @@
         document.getElementById('filterHora').value = ''; 
         
         currentMode = 'hoy';
-        mostrarAyer = false; 
         runFilters();
     }
 
-    // NUEVA FUNCIÓN: Configura el modo Ayer + Hoy
     function setAyerYHoy() {
-        document.getElementById('filterFecha').value = ''; // Borramos la fecha específica
-        document.getElementById('filterHora').value = ''; // Ponemos 4 PM por defecto (puedes cambiarlo a mano si quieres)
+        document.getElementById('filterFecha').value = ''; 
+        document.getElementById('filterHora').value = ''; 
         currentMode = 'rango_ayer_hoy'; 
-        mostrarAyer = false; 
         runFilters();
     }
 
@@ -308,7 +296,6 @@
         document.getElementById('filterFecha').value = '';
         document.getElementById('filterHora').value = ''; 
         currentMode = 'month';
-        mostrarAyer = false;
         runFilters();
     }
 
@@ -320,34 +307,18 @@
         
         if (val === `${y}-${m}-${d}`) {
             currentMode = 'hoy';
-            mostrarAyer = false; 
         } else {
             currentMode = val ? 'specific' : 'month'; 
-            mostrarAyer = false;
         }
         runFilters();
     }
 
-    function toggleAyer() {
-        mostrarAyer = !mostrarAyer;
-        runFilters();
-    }
-
     function resetFilters() {
-        const y = hoyDate.getFullYear();
-        const m = String(hoyDate.getMonth() + 1).padStart(2, '0');
-        const d = String(hoyDate.getDate()).padStart(2, '0');
-
         document.getElementById('search').value = '';
-        document.getElementById('filterFecha').value = `${y}-${m}-${d}`;
-        document.getElementById('filterHora').value = '';
         document.getElementById('filterEtiqueta').value = '';
         document.getElementById('filterTono').value = '';
         document.getElementById('filterTipoMedio').value = '';
-        
-        currentMode = 'hoy';
-        mostrarAyer = true; 
-        runFilters();
+        setSoloHoy();
     }
 
     function downloadExcel() {
@@ -378,8 +349,6 @@
 
     function downloadPDF() {
         const elemento = document.getElementById('dashboard-content');
-        const btnAyer = document.getElementById('btn-ayer-container');
-        btnAyer.style.display = 'none'; 
         
         const opciones = {
             margin:       0.3,
@@ -389,9 +358,7 @@
             jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
         };
         
-        html2pdf().set(opciones).from(elemento).save().then(() => {
-            if(currentMode === 'hoy') btnAyer.style.display = 'block';
-        });
+        html2pdf().set(opciones).from(elemento).save();
     }
 
     function parseExcelDate(dateStr) {
@@ -430,41 +397,18 @@
         return (h * 60) + m + offset;
     }
 
-    function updateDynamicEtiquetas(dataParaEsaFecha, etiquetaActual) {
-        const selectEtiqueta = document.getElementById('filterEtiqueta');
-        const etiquetasDisponibles = [...new Set(dataParaEsaFecha.map(row => row.etiqueta).filter(e => e !== ""))].sort();
-        
-        selectEtiqueta.innerHTML = '<option value="">Todas las etiquetas</option>';
-        etiquetasDisponibles.forEach(e => { 
-            selectEtiqueta.appendChild(new Option(e, e)); 
-        });
-
-        if (etiquetasDisponibles.includes(etiquetaActual)) {
-            selectEtiqueta.value = etiquetaActual;
-        }
-    }
-
     function runFilters() {
         const search = document.getElementById('search').value.toLowerCase();
         const tono = document.getElementById('filterTono').value;
         const tipoMedio = document.getElementById('filterTipoMedio').value;
         const fechaInput = document.getElementById('filterFecha').value; 
         const horaInput = document.getElementById('filterHora').value; 
-        const etiquetaPrevia = document.getElementById('filterEtiqueta').value;
+        const etiquetaActual = document.getElementById('filterEtiqueta').value;
 
         let minMinutes = -1;
         if (horaInput) {
             const [hInput, mInput] = horaInput.split(':');
             minMinutes = parseInt(hInput, 10) * 60 + parseInt(mInput, 10);
-        }
-
-        const btnAyerContainer = document.getElementById('btn-ayer-container');
-        const btnAyer = document.getElementById('btn-ayer');
-        if (currentMode === 'hoy') {
-            btnAyerContainer.style.display = 'block';
-            btnAyer.innerHTML = mostrarAyer ? "➖ Ocultar notas de ayer (registradas hoy)" : "➕ Incluir notas de ayer (registradas hoy)";
-        } else {
-            btnAyerContainer.style.display = 'none';
         }
 
         const dateFiltered = allData.filter(row => {
@@ -476,14 +420,8 @@
             const rM = rowDateObj.getMonth();
 
             if (currentMode === 'hoy') {
-                if (rowTime === hoyTime) return true; 
-                if (mostrarAyer && rowTime === ayerTime) {
-                    const rowRegistroTime = parseExcelDate(row.marcaTemporal); 
-                    if (rowRegistroTime === hoyTime) return true; 
-                }
-                return false;
+                return (rowTime === hoyTime);
             } 
-            // NUEVO: Validar rango Ayer y Hoy
             else if (currentMode === 'rango_ayer_hoy') {
                 return (rowTime === ayerTime || rowTime === hoyTime);
             }
@@ -498,9 +436,6 @@
             return true; 
         });
 
-        updateDynamicEtiquetas(dateFiltered, etiquetaPrevia);
-        const etiquetaActual = document.getElementById('filterEtiqueta').value;
-
         const finalFiltered = dateFiltered.filter(row => {
             const txt = (row.titular + " " + row.resumen).toLowerCase();
             const matchSearch = search === "" || txt.includes(search);
@@ -512,14 +447,16 @@
             if (minMinutes >= 0) {
                 const rowMins = getMinutesFromMarcaTemporal(row.marcaTemporal);
                 const rowTime = parseExcelDate(row.fecha);
+                const rowRegistroTime = parseExcelDate(row.marcaTemporal);
                 
-                // NUEVA LÓGICA: Si estamos en "Ayer + Hoy", la hora solo corta las noticias de AYER
                 if (currentMode === 'rango_ayer_hoy') {
-                    if (rowTime === ayerTime && rowMins !== -1 && rowMins < minMinutes) {
+                    // LÓGICA CORREGIDA:
+                    // Si la noticia es de ayer Y la registraste ayer, se le aplica el filtro de hora.
+                    // Si la noticia es de ayer pero la registraste hoy (rezago), NO se oculta.
+                    if (rowTime === ayerTime && rowRegistroTime === ayerTime && rowMins !== -1 && rowMins < minMinutes) {
                         matchHora = false;
                     }
                 } else {
-                    // Lógica normal
                     if (rowMins !== -1 && rowMins < minMinutes) {
                         matchHora = false;
                     }
@@ -554,24 +491,23 @@
         
         const displayData = data.slice(0, 300); 
         
-        // Actualizamos el texto arriba a la derecha para que sepas qué estás viendo
-        let textoConteo = currentMode === 'hoy' ? (mostrarAyer ? "Mostrando: Hoy + Rezagos de ayer" : "Mostrando: Solo Hoy") : 
+        let textoConteo = currentMode === 'hoy' ? "Mostrando: Solo Hoy" : 
                           currentMode === 'rango_ayer_hoy' ? "Mostrando: Ayer y Hoy" :
                           currentMode === 'specific' ? "Mostrando Fecha Seleccionada" : 
                           currentMode === 'month' ? "Mostrando: Este Mes" : "Mostrando Datos";
         
         if (horaInput) {
             if (currentMode === 'rango_ayer_hoy') {
-                textoConteo += ` (Ayer desde las ${horaInput} y todo hoy)`;
+                textoConteo += ` (Corte ayer: desde las ${horaInput})`;
             } else {
                 textoConteo += ` (Desde las ${horaInput})`;
             }
         }
         
-        countBox.innerText = `${textoConteo}`;
+        countBox.innerText = `${textoConteo} (${data.length} resultados)`;
 
         if (displayData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b; border:none;">No hay noticias para mostrar con estos filtros.<br><br><button onclick="verMes()" class="btn-action bg-gray" style="padding:10px 15px;">Ver todo el mes</button></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b; border:none; font-weight:bold;">No hay noticias para mostrar con estos filtros.<br><br><button onclick="verMes()" class="btn-action bg-gray" style="padding:10px 15px; margin-top:15px; border-radius:8px; font-size:12px;">Ver todo el mes</button></td></tr>`;
             return;
         }
 
@@ -598,7 +534,6 @@
             let horaRegistro = "";
             if(row.marcaTemporal) {
                 const parts = row.marcaTemporal.trim().split(/\s+/);
-                // Aquí ya está incluida la mejora visual de la hora que te comenté antes :)
                 if(parts.length >= 2) horaRegistro = `<div style="font-size:10px; color:rgba(0,0,0,0.65); font-weight:600; margin-top:4px;">Registrado: ${parts[1]}</div>`;
             }
 
