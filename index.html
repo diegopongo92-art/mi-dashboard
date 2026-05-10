@@ -185,27 +185,31 @@
                 skipEmptyLines: true,
                 complete: function(results) {
                     const h = Object.keys(results.data[0]);
-                    const cMarca = h.find(x => x.includes('MARCA TEMPORAL'));
-                    const cFecha = h.find(x => x.includes('FECHA DE PUBLICACION'));
-                    const cTit = h.find(x => x.includes('TITULAR'));
-                    const cMed = h.find(x => x.includes('NOMBRE DEL MEDIO'));
-                    const cTipoMedio = h.find(x => x.includes('TIPO DE MEDIO') || x.includes('TIPO MEDIO')) || cMed; // RESTAURADO
-                    const cTon = h.find(x => x.includes('CRITERIO'));
-                    const cRes = h.find(x => x.includes('RESUMEN'));
-                    const cLin = h.find(x => x.includes('LINK'));
-                    const cEti = h.find(x => x.includes('ETIQUETA') || x.includes('TEMA'));
+                    
+                    // CORRECCIÓN AQUÍ: Búsqueda de columnas a prueba de mayúsculas/minúsculas
+                    const getCol = (str) => h.find(x => x.toUpperCase().includes(str));
+                    
+                    const cMarca = getCol('MARCA TEMPORAL');
+                    const cFecha = getCol('FECHA DE PUBLICACION') || getCol('FECHA');
+                    const cTit = getCol('TITULAR');
+                    const cTipoMedio = getCol('TIPO DE MEDIO') || getCol('TIPO MEDIO');
+                    const cMed = getCol('NOMBRE DEL MEDIO') || h.find(x => x.toUpperCase().includes('MEDIO') && !x.toUpperCase().includes('TIPO'));
+                    const cTon = getCol('CRITERIO') || getCol('TONO');
+                    const cRes = getCol('RESUMEN');
+                    const cLin = getCol('LINK') || getCol('ENLACE');
+                    const cEti = getCol('ETIQUETA') || getCol('TEMA');
 
                     allData = results.data.map(row => ({
                         marca: (row[cMarca] || '').trim(),
                         fecha: (row[cFecha] || '').trim(),
                         titular: (row[cTit] || '').trim(),
                         medio: (row[cMed] || '').trim(),
-                        tipoMedio: (row[cTipoMedio] || '').trim(), // RESTAURADO
+                        tipoMedio: (row[cTipoMedio] || '').trim(),
                         tono: (row[cTon] || '').trim(),
                         resumen: (row[cRes] || '').trim(),
                         link: (row[cLin] || '#').trim(),
                         etiqueta: (row[cEti] || '').trim()
-                    })).filter(r => r.titular !== "");
+                    })).filter(r => r.titular !== ""); // Si no encontraba la columna, titular era "", por eso se borraba todo.
 
                     allData.reverse();
                     fillSelectors();
@@ -218,15 +222,15 @@
     function fillSelectors() {
         const tonos = [...new Set(allData.map(r => r.tono))].filter(Boolean).sort();
         const etiquetas = [...new Set(allData.map(r => r.etiqueta))].filter(Boolean).sort();
-        const tipos = [...new Set(allData.map(r => r.tipoMedio))].filter(Boolean).sort(); // RESTAURADO
+        const tipos = [...new Set(allData.map(r => r.tipoMedio))].filter(Boolean).sort(); 
         
         const selTono = document.getElementById('filterTono');
         const selEti = document.getElementById('filterEtiqueta');
-        const selTipo = document.getElementById('filterTipoMedio'); // RESTAURADO
+        const selTipo = document.getElementById('filterTipoMedio'); 
         
         tonos.forEach(t => selTono.appendChild(new Option(t, t)));
         etiquetas.forEach(e => selEti.appendChild(new Option(e, e)));
-        tipos.forEach(t => selTipo.appendChild(new Option(t, t))); // RESTAURADO
+        tipos.forEach(t => selTipo.appendChild(new Option(t, t))); 
     }
 
     function setSoloHoy() {
@@ -279,7 +283,7 @@
         const search = document.getElementById('search').value.toLowerCase();
         const tono = document.getElementById('filterTono').value;
         const etiqueta = document.getElementById('filterEtiqueta').value;
-        const tipoMedio = document.getElementById('filterTipoMedio').value; // RESTAURADO
+        const tipoMedio = document.getElementById('filterTipoMedio').value; 
         const horaVal = document.getElementById('filterHora').value;
         const fechaVal = document.getElementById('filterFecha').value;
         
@@ -311,12 +315,12 @@
             const matchSearch = !search || (r.titular + r.resumen + r.medio).toLowerCase().includes(search);
             const matchTono = !tono || r.tono === tono;
             const matchEtiqueta = !etiqueta || r.etiqueta === etiqueta;
-            const matchTipoMedio = !tipoMedio || r.tipoMedio === tipoMedio; // RESTAURADO
+            const matchTipoMedio = !tipoMedio || r.tipoMedio === tipoMedio; 
 
             return matchDate && matchHora && matchSearch && matchTono && matchEtiqueta && matchTipoMedio;
         });
         
-        currentFilteredData = filtered; // Guardamos para exportar a Excel
+        currentFilteredData = filtered;
         render(filtered);
     }
 
@@ -337,7 +341,7 @@
             tbody.innerHTML += `
                 <tr style="background:${bg}">
                     <td><b>${r.fecha}</b><br><small style="opacity:0.7">Reg: ${regTime}</small></td>
-                    <td><b>${r.titular}</b><br><small style="color:var(--primary); font-weight:700; text-transform:uppercase;">${r.medio} (${r.tipoMedio})</small></td>
+                    <td><b>${r.titular}</b><br><small style="color:var(--primary); font-weight:700; text-transform:uppercase;">${r.medio} ${r.tipoMedio ? `(${r.tipoMedio})` : ''}</small></td>
                     <td><span class="badge ${cls}">${r.tono}</span></td>
                     <td style="font-weight:500">${r.resumen}</td>
                     <td style="text-align:center;"><a href="${r.link}" target="_blank" class="btn-link">Ver Nota</a></td>
@@ -353,7 +357,6 @@
 
     function resetFilters() { location.reload(); }
 
-    // EXCEL RESTAURADO AL 100% CON TODAS LAS COLUMNAS
     function downloadExcel() {
         if (currentFilteredData.length === 0) return alert("No hay datos para descargar.");
         
