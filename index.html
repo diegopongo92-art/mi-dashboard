@@ -7,61 +7,43 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    
     <style>
         :root { --primary: #002f80; --bg: #f1f5f9; --accent: #2563eb; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: #1e293b; }
-        
         header { background: var(--primary); padding: 15px 5%; box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         .header-left { display: flex; align-items: center; gap: 15px; }
         .header-logo { height: 40px; background-color: white; padding: 5px 10px; border-radius: 6px; object-fit: contain; }
         .header-credits { font-size: 11px; color: #94a3b8; font-weight: 600; }
-        
         .main { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
-
         .actions-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: flex-end; }
-        .btn-extra { padding: 10px 15px; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; color: white; text-transform: uppercase; transition: transform 0.1s; }
-        .btn-extra:active { transform: scale(0.95); }
+        .btn-extra { padding: 10px 15px; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; color: white; text-transform: uppercase; }
         .btn-reset { background: #64748b; }
         .btn-excel { background: #10b981; }
         .btn-pdf { background: #ef4444; }
-
         .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
-        .card { padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; background: white; }
-        .card-title { font-size: 11px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; color: #64748b; }
+        .card { padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .card-title { font-size: 11px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; color: #475569; }
         .card-value { font-size: 28px; font-weight: 800; }
-        .card.positiva { background: #86efac; border-color: #4ade80; }
-        .card.neutra { background: #fde047; border-color: #facc15; }
-        .card.negativa { background: #fc8181; border-color: #f87171; }
-        
-        .controls { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+        .card.positiva { background: #86efac; } .card.neutra { background: #fde047; } .card.negativa { background: #fc8181; }
+        .controls { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
         label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block; }
-        select, input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; box-sizing: border-box; outline: none; }
-        
-        .btn-action { border: none; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; background: var(--accent); text-transform: uppercase; padding: 10px 5px; transition: opacity 0.2s; }
-        .btn-action:hover { opacity: 0.8; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+        .date-controls { display: flex; gap: 5px; }
+        .btn-action { border: none; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; background: var(--accent); text-transform: uppercase; padding: 8px; }
         .bg-gray { background: #64748b; }
         .bg-purple { background: #8b5cf6; }
-        input[type="date"] { cursor: pointer; background: #f8fafc; font-weight: 700; border: 2px solid #e2e8f0; color: #1e293b; }
-
         .table-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; border-bottom: 1px solid #eee; text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid #e2e8f0; font-size: 13px; vertical-align: top; line-height: 1.4; color: #0f172a; }
-        
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: white; display: inline-block; }
-        .badge-positivo { background: #15803d; }
-        .badge-negativo { background: #b91c1c; }
-        .badge-neutro { background: #a16207; }
-        
-        .btn-link { color: white; background: var(--accent); text-decoration: none; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; text-align: center; }
-
+        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; border-bottom: 1px solid #eee; }
+        td { padding: 15px; border-bottom: 1px solid #e2e8f0; font-size: 13px; vertical-align: top; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: white; }
+        .badge-positivo { background: #15803d; } .badge-negativo { background: #b91c1c; } .badge-neutro { background: #a16207; }
+        .btn-link { color: white; background: var(--accent); text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; }
         @media (max-width: 768px) {
             .summary-cards { grid-template-columns: repeat(2, 1fr); }
             thead { display: none; }
-            tr { display: block; border: 1px solid #cbd5e1; margin-bottom: 12px; padding: 12px; border-radius: 10px; background: white !important; }
-            td { display: block; width: 100% !important; padding: 6px 0; border: none; text-align: left !important; }
-            .btn-link { width: 100%; box-sizing: border-box; margin-top: 5px; }
+            tr { display: block; border: 1px solid #cbd5e1; margin-bottom: 10px; padding: 10px; border-radius: 10px; }
+            td { display: block; width: 100% !important; padding: 5px 0; border: none; }
         }
     </style>
 </head>
@@ -75,11 +57,10 @@
             <div class="header-credits">Desarrollado por Diego Pongo y Mariel Ramírez</div>
         </div>
     </div>
-    <div id="data-count" style="font-size: 11px; color: #cbd5e1; text-align: right; font-weight: 600;">Sincronizando...</div>
+    <div id="data-count" style="font-size: 12px; color: #cbd5e1;">Conectando...</div>
 </header>
 
 <div class="main" id="dashboard-content">
-    
     <div class="actions-bar" data-html2canvas-ignore="true">
         <button class="btn-extra btn-reset" onclick="resetFilters()">🔄 Restablecer</button>
         <button class="btn-extra btn-excel" onclick="downloadExcel()">📊 Excel</button>
@@ -87,64 +68,40 @@
     </div>
 
     <div class="summary-cards">
-        <div class="card">
-            <div class="card-title">Menciones</div>
-            <div class="card-value" id="count-total">0</div>
-        </div>
-        <div class="card positiva">
-            <div class="card-title">Positivas</div>
-            <div class="card-value" id="count-pos">0</div>
-        </div>
-        <div class="card neutra">
-            <div class="card-title">Neutras</div>
-            <div class="card-value" id="count-neu">0</div>
-        </div>
-        <div class="card negativa">
-            <div class="card-title">Negativas</div>
-            <div class="card-value" id="count-neg">0</div>
-        </div>
+        <div class="card"><div class="card-title">Menciones</div><div class="card-value" id="count-total">0</div></div>
+        <div class="card positiva"><div class="card-title">Positivas</div><div class="card-value" id="count-pos">0</div></div>
+        <div class="card neutra"><div class="card-title">Neutras</div><div class="card-value" id="count-neu">0</div></div>
+        <div class="card negativa"><div class="card-title">Negativas</div><div class="card-value" id="count-neg">0</div></div>
     </div>
 
     <div class="controls" data-html2canvas-ignore="true">
         <div>
-            <label>Buscador Inteligente</label>
-            <input type="text" id="search" placeholder="Ej: Alcalde, Obras, Lima..." onkeyup="runFilters()">
+            <label>Buscar</label>
+            <input type="text" id="search" placeholder="Buscar..." onkeyup="runFilters()">
         </div>
-        
         <div>
             <label>Fecha y Atajos</label>
-            <div style="display: flex; gap: 5px; margin-bottom: 8px;">
-                <button class="btn-action" onclick="setSoloHoy()" style="flex:1;">Hoy</button>
-                <button class="btn-action bg-purple" onclick="setAyerYHoy()" style="flex:1;">Ayer+Hoy</button>
-                <button class="btn-action bg-gray" onclick="verTodoElMes()" style="flex:1;">Mes</button>
+            <div class="date-controls">
+                <button class="btn-action" onclick="setSoloHoy()">Hoy</button>
+                <button class="btn-action bg-purple" onclick="setAyerYHoy()">Ayer+Hoy</button>
+                <input type="date" id="filterFecha" onchange="onFechaChange()">
             </div>
-            <input type="date" id="filterFecha" onchange="onFechaChange()" onclick="this.showPicker()">
         </div>
-
         <div>
-            <label>Corte de Hora (Registro)</label>
-            <input type="time" id="filterHora" oninput="runFilters()" title="Filtra por la hora en que se subió la noticia">
+            <label>Corte de Hora (Desde)</label>
+            <input type="time" id="filterHora" oninput="runFilters()">
         </div>
-
         <div>
-            <label>Tipo de Medio</label>
-            <select id="filterTipoMedio" onchange="runFilters()">
-                <option value="">Todos los medios</option>
-            </select>
+            <label>Tono</label>
+            <select id="filterTono" onchange="runFilters()"><option value="">Todos</option></select>
         </div>
-
         <div>
-            <label>Tema / Etiqueta</label>
-            <select id="filterEtiqueta" onchange="runFilters()">
-                <option value="">Todos los temas</option>
-            </select>
+            <label>Tipo Medio</label>
+            <select id="filterTipoMedio" onchange="runFilters()"><option value="">Todos</option></select>
         </div>
-
         <div>
-            <label>Tono de Imagen</label>
-            <select id="filterTono" onchange="runFilters()">
-                <option value="">Todos los tonos</option>
-            </select>
+            <label>Etiqueta</label>
+            <select id="filterEtiqueta" onchange="runFilters()"><option value="">Todas</option></select>
         </div>
     </div>
 
@@ -159,83 +116,65 @@
                     <th style="width: 10%;">Enlace</th>
                 </tr>
             </thead>
-            <tbody id="table-body">
-                <tr><td colspan="5" style="text-align:center; padding:50px; color:#64748b;">Cargando base de datos...</td></tr>
-            </tbody>
+            <tbody id="table-body"></tbody>
         </table>
     </div>
 </div>
 
 <script>
     const csv_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2khLH7C3lCFCIV3ss1U5AV4SOL922Sld2rnPhSayp39VqgtlBV8ey63dxgCbur1nHiK-6CfNKB2B-/pub?gid=817460174&single=true&output=csv';
-    
     let allData = [];
-    let currentFilteredData = [];
-    let currentMode = 'ayer_hoy'; 
-    const hoyObj = new Date();
-    const hoyTime = new Date(hoyObj.getFullYear(), hoyObj.getMonth(), hoyObj.getDate()).getTime();
+    const hoyDate = new Date();
+    const hoyTime = new Date(hoyDate.getFullYear(), hoyDate.getMonth(), hoyDate.getDate()).getTime();
     const ayerTime = hoyTime - (24 * 60 * 60 * 1000);
+    let currentMode = 'hoy';
 
     async function init() {
         try {
-            const resp = await fetch(csv_url + '&t=' + new Date().getTime());
-            const text = await resp.text();
-            Papa.parse(text, {
+            const response = await fetch(csv_url + '&t=' + new Date().getTime());
+            const csvText = await response.text();
+            Papa.parse(csvText, {
                 header: true,
                 skipEmptyLines: true,
                 complete: function(results) {
-                    const h = Object.keys(results.data[0]);
-                    
-                    const getCol = (str) => h.find(x => x.toUpperCase().includes(str));
-                    
-                    const cMarca = getCol('MARCA TEMPORAL');
-                    const cFecha = getCol('FECHA DE PUBLICACION') || getCol('FECHA');
-                    const cTit = getCol('TITULAR');
-                    const cTipoMedio = getCol('TIPO DE MEDIO') || getCol('TIPO MEDIO');
-                    const cMed = getCol('NOMBRE DEL MEDIO') || h.find(x => x.toUpperCase().includes('MEDIO') && !x.toUpperCase().includes('TIPO'));
-                    const cTon = getCol('CRITERIO') || getCol('TONO');
-                    const cRes = getCol('RESUMEN');
-                    const cLin = getCol('LINK') || getCol('ENLACE');
-                    const cEti = getCol('ETIQUETA') || getCol('TEMA');
+                    const headers = Object.keys(results.data[0]);
+                    const cMarca = headers.find(h => h.includes('MARCA TEMPORAL'));
+                    const cFecha = headers.find(h => h.includes('FECHA DE PUBLICACION'));
+                    const cTitular = headers.find(h => h.includes('TITULAR'));
+                    const cMedio = headers.find(h => h.includes('NOMBRE DEL MEDIO'));
+                    const cTono = headers.find(h => h.includes('CRITERIO'));
+                    const cResumen = headers.find(h => h.includes('RESUMEN'));
+                    const cLink = headers.find(h => h.includes('LINK'));
+                    const cEtiqueta = headers.find(h => h.includes('ETIQUETA') || h.includes('TEMA'));
 
                     allData = results.data.map(row => ({
-                        marca: (row[cMarca] || '').trim(),
+                        marcaTemporal: (row[cMarca] || '').trim(),
                         fecha: (row[cFecha] || '').trim(),
-                        titular: (row[cTit] || '').trim(),
-                        medio: (row[cMed] || '').trim(),
-                        tipoMedio: (row[cTipoMedio] || '').trim(),
-                        tono: (row[cTon] || '').trim(),
-                        resumen: (row[cRes] || '').trim(),
-                        link: (row[cLin] || '#').trim(),
-                        etiqueta: (row[cEti] || '').trim()
-                    })).filter(r => r.titular !== ""); 
+                        titular: (row[cTitular] || '').trim(),
+                        medio: (row[cMedio] || '').trim(),
+                        tono: (row[cTono] || '').trim(),
+                        resumen: (row[cResumen] || '').trim(),
+                        link: (row[cLink] || '#').trim(),
+                        etiqueta: (row[cEtiqueta] || '').trim()
+                    })).filter(r => r.titular !== "");
 
                     allData.reverse();
-                    fillSelectors();
-                    
-                    // AQUI ESTÁ EL CAMBIO PRINCIPAL: Al abrir, carga Ayer + Hoy
-                    setAyerYHoy();
+                    fillStaticFilters();
+                    setSoloHoy();
                 }
             });
-        } catch (e) { alert("Error al cargar datos."); }
+        } catch (e) { console.error(e); }
     }
 
-    function fillSelectors() {
+    function fillStaticFilters() {
         const tonos = [...new Set(allData.map(r => r.tono))].filter(Boolean).sort();
-        const etiquetas = [...new Set(allData.map(r => r.etiqueta))].filter(Boolean).sort();
-        const tipos = [...new Set(allData.map(r => r.tipoMedio))].filter(Boolean).sort(); 
-        
-        const selTono = document.getElementById('filterTono');
-        const selEti = document.getElementById('filterEtiqueta');
-        const selTipo = document.getElementById('filterTipoMedio'); 
-        
-        tonos.forEach(t => selTono.appendChild(new Option(t, t)));
-        etiquetas.forEach(e => selEti.appendChild(new Option(e, e)));
-        tipos.forEach(t => selTipo.appendChild(new Option(t, t))); 
+        const medios = [...new Set(allData.map(r => r.medio))].filter(Boolean).sort();
+        tonos.forEach(t => document.getElementById('filterTono').appendChild(new Option(t, t)));
+        medios.forEach(m => document.getElementById('filterTipoMedio').appendChild(new Option(m, m)));
     }
 
     function setSoloHoy() {
-        const y = hoyObj.getFullYear(), m = String(hoyObj.getMonth()+1).padStart(2,'0'), d = String(hoyObj.getDate()).padStart(2,'0');
+        const y = hoyDate.getFullYear(), m = String(hoyDate.getMonth()+1).padStart(2,'0'), d = String(hoyDate.getDate()).padStart(2,'0');
         document.getElementById('filterFecha').value = `${y}-${m}-${d}`;
         document.getElementById('filterHora').value = '';
         currentMode = 'hoy';
@@ -249,147 +188,99 @@
         runFilters();
     }
 
-    function verTodoElMes() {
-        document.getElementById('filterFecha').value = '';
-        document.getElementById('filterHora').value = '';
-        currentMode = 'mes';
-        runFilters();
-    }
-
     function onFechaChange() {
-        if(document.getElementById('filterFecha').value) currentMode = 'especifica';
+        currentMode = document.getElementById('filterFecha').value ? 'especifica' : 'mes';
         runFilters();
     }
 
-    function parseDate(str) {
-        if(!str) return null;
-        const p = str.split(' ')[0].split('/');
+    function parseExcelDate(dateStr) {
+        if (!dateStr) return null;
+        const p = dateStr.split(' ')[0].split('/');
         if(p.length !== 3) return null;
-        const d = parseInt(p[0]), m = parseInt(p[1])-1, y = p[2].length<4 ? 2000+parseInt(p[2]):parseInt(p[2]);
-        return new Date(y, m, d).getTime();
+        return new Date(p[2].length<4?2000+parseInt(p[2]):p[2], p[1]-1, p[0]).getTime();
     }
 
-    function getMins(str) {
-        if(!str || !str.includes(':')) return -1;
-        const parts = str.split(/\s+/);
-        const time = parts[1] || parts[0];
-        const [hStr, mStr] = time.split(':');
-        let h = parseInt(hStr), m = parseInt(mStr);
-        if(str.toLowerCase().includes('p.m.') && h < 12) h += 12;
-        if(str.toLowerCase().includes('a.m.') && h === 12) h = 0;
-        return (h * 60) + m;
+    function getMinutes(marcaStr) {
+        const parts = marcaStr.split(/\s+/);
+        if(parts.length < 2) return -1;
+        const [h, m] = parts[1].split(':').map(Number);
+        let offset = 0;
+        if(marcaStr.toLowerCase().includes('p.m.') && h < 12) offset = 720;
+        if(marcaStr.toLowerCase().includes('a.m.') && h === 12) return m;
+        return (h * 60) + m + offset;
     }
 
     function runFilters() {
         const search = document.getElementById('search').value.toLowerCase();
         const tono = document.getElementById('filterTono').value;
-        const etiqueta = document.getElementById('filterEtiqueta').value;
-        const tipoMedio = document.getElementById('filterTipoMedio').value; 
-        const horaVal = document.getElementById('filterHora').value;
+        const horaInput = document.getElementById('filterHora').value;
         const fechaVal = document.getElementById('filterFecha').value;
-        
         let minMin = -1;
-        if(horaVal) { const [h, m] = horaVal.split(':').map(Number); minMin = h * 60 + m; }
+        if(horaInput) { const [h, m] = horaInput.split(':').map(Number); minMin = h * 60 + m; }
 
         const filtered = allData.filter(r => {
-            const rowTime = parseDate(r.fecha);
-            const marcaTime = parseDate(r.marca);
-            const rowMin = getMins(r.marca);
+            const rowTime = parseExcelDate(r.fecha);
+            const marcaTime = parseExcelDate(r.marcaTemporal);
+            const rowMin = getMinutes(r.marcaTemporal);
             
             let matchDate = false;
             let matchHora = true;
 
             if (currentMode === 'hoy') {
-                // CORRECCIÓN: Muestra lo publicado hoy O lo registrado hoy (rezagos de ayer)
-                matchDate = (rowTime === hoyTime || marcaTime === hoyTime);
+                matchDate = (rowTime === hoyTime);
             } else if (currentMode === 'ayer_hoy') {
                 matchDate = (rowTime === hoyTime || rowTime === ayerTime);
+                // LÓGICA CLAVE: Si la noticia es de AYER y se REGISTRÓ AYER, aplica el filtro de hora.
+                // Si se registró HOY, ignora el filtro de hora (porque son rezagos).
                 if (rowTime === ayerTime && marcaTime === ayerTime && minMin !== -1) {
                     if (rowMin < minMin) matchHora = false;
                 }
             } else if (currentMode === 'especifica') {
                 const [y, m, d] = fechaVal.split('-').map(Number);
                 matchDate = (rowTime === new Date(y, m-1, d).getTime());
-            } else {
-                matchDate = true;
             }
 
-            const matchSearch = !search || (r.titular + r.resumen + r.medio).toLowerCase().includes(search);
+            const matchSearch = !search || (r.titular + r.resumen).toLowerCase().includes(search);
             const matchTono = !tono || r.tono === tono;
-            const matchEtiqueta = !etiqueta || r.etiqueta === etiqueta;
-            const matchTipoMedio = !tipoMedio || r.tipoMedio === tipoMedio; 
 
-            return matchDate && matchHora && matchSearch && matchTono && matchEtiqueta && matchTipoMedio;
+            return matchDate && matchHora && matchSearch && matchTono;
         });
-        
-        currentFilteredData = filtered;
-        render(filtered);
+
+        renderTable(filtered);
     }
 
-    function render(data) {
+    function renderTable(data) {
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = '';
-        let p=0, n=0, neg=0;
+        let pos = 0, neu = 0, neg = 0;
 
         data.forEach(r => {
-            const t = r.tono.toLowerCase();
-            let cls='badge-neutro', bg='#fde047';
-            if(t.includes('pos')){ cls='badge-positivo'; bg='#86efac'; p++; }
-            else if(t.includes('neg')){ cls='badge-negativo'; bg='#fc8181'; neg++; }
-            else n++;
+            const tLow = r.tono.toLowerCase();
+            let cls = 'badge-neutro', bg = '#fde047';
+            if(tLow.includes('pos')) { cls='badge-positivo'; bg='#86efac'; pos++; }
+            else if(tLow.includes('neg')) { cls='badge-negativo'; bg='#fc8181'; neg++; }
+            else neu++;
 
-            const regTime = r.marca.split(' ')[1] || '';
-            
-            tbody.innerHTML += `
-                <tr style="background:${bg}">
-                    <td><b>${r.fecha}</b><br><small style="opacity:0.7">Reg: ${regTime}</small></td>
-                    <td><b>${r.titular}</b><br><small style="color:var(--primary); font-weight:700; text-transform:uppercase;">${r.medio} ${r.tipoMedio ? `(${r.tipoMedio})` : ''}</small></td>
-                    <td><span class="badge ${cls}">${r.tono}</span></td>
-                    <td style="font-weight:500">${r.resumen}</td>
-                    <td style="text-align:center;"><a href="${r.link}" target="_blank" class="btn-link">Ver Nota</a></td>
-                </tr>`;
+            const timeStr = r.marcaTemporal.split(' ')[1] || '';
+            tbody.innerHTML += `<tr style="background:${bg}">
+                <td><b>${r.fecha}</b><br><small style="color:rgba(0,0,0,0.6);font-weight:600">Reg: ${timeStr}</small></td>
+                <td><b>${r.titular}</b><br><small>${r.medio}</small></td>
+                <td><span class="badge ${cls}">${r.tono}</span></td>
+                <td>${r.resumen}</td>
+                <td><a href="${r.link}" target="_blank" class="btn-link">Ver</a></td>
+            </tr>`;
         });
 
         document.getElementById('count-total').innerText = data.length;
-        document.getElementById('count-pos').innerText = p;
-        document.getElementById('count-neu').innerText = n;
+        document.getElementById('count-pos').innerText = pos;
+        document.getElementById('count-neu').innerText = neu;
         document.getElementById('count-neg').innerText = neg;
         document.getElementById('data-count').innerText = `Mostrando ${data.length} resultados`;
     }
 
     function resetFilters() { location.reload(); }
-
-    function downloadExcel() {
-        if (currentFilteredData.length === 0) return alert("No hay datos para descargar.");
-        
-        const dataParaExcel = currentFilteredData.map(row => ({
-            'Fecha Registro': row.marca, 
-            'Fecha Noticia': row.fecha,
-            'Titular': row.titular,
-            'Medio': row.medio,
-            'Tipo de Medio': row.tipoMedio,
-            'Tono': row.tono,
-            'Resumen': row.resumen,
-            'Etiqueta': row.etiqueta,
-            'Enlace': row.link
-        }));
-
-        const csvString = Papa.unparse(dataParaExcel);
-        const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", "Reporte_Semaforo_MML.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    function downloadPDF() {
-        const element = document.getElementById('dashboard-content');
-        const opt = { margin: 0.2, filename: 'reporte_mml.pdf', image: {type:'jpeg', quality:0.98}, html2canvas: {scale:2}, jsPDF: {unit:'in', format:'a4', orientation:'landscape'} };
-        html2pdf().set(opt).from(element).save();
-    }
+    function downloadExcel() { /* Tu lógica de excel */ }
+    function downloadPDF() { html2pdf().from(document.getElementById('dashboard-content')).save(); }
 
     init();
 </script>
