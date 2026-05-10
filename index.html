@@ -12,7 +12,6 @@
         :root { --primary: #002f80; --bg: #f1f5f9; --accent: #2563eb; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: #1e293b; }
         
-        /* Encabezado */
         header { background: var(--primary); padding: 15px 5%; box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         .header-left { display: flex; align-items: center; gap: 15px; }
         .header-logo { height: 40px; background-color: white; padding: 5px 10px; border-radius: 6px; object-fit: contain; }
@@ -20,7 +19,6 @@
         
         .main { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
 
-        /* Botones de Exportación */
         .actions-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: flex-end; }
         .btn-extra { padding: 10px 15px; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; color: white; text-transform: uppercase; transition: transform 0.1s; }
         .btn-extra:active { transform: scale(0.95); }
@@ -28,7 +26,6 @@
         .btn-excel { background: #10b981; }
         .btn-pdf { background: #ef4444; }
 
-        /* Tarjetas de Resumen */
         .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
         .card { padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; background: white; }
         .card-title { font-size: 11px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; color: #64748b; }
@@ -37,19 +34,16 @@
         .card.neutra { background: #fde047; border-color: #facc15; }
         .card.negativa { background: #fc8181; border-color: #f87171; }
         
-        /* Panel de Controles */
-        .controls { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+        .controls { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
         label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block; }
         select, input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; box-sizing: border-box; outline: none; }
         
-        /* Botones de Fecha y Atajos */
         .btn-action { border: none; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; background: var(--accent); text-transform: uppercase; padding: 10px 5px; transition: opacity 0.2s; }
         .btn-action:hover { opacity: 0.8; }
         .bg-gray { background: #64748b; }
         .bg-purple { background: #8b5cf6; }
         input[type="date"] { cursor: pointer; background: #f8fafc; font-weight: 700; border: 2px solid #e2e8f0; color: #1e293b; }
 
-        /* Estilos de Tabla */
         .table-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; border-bottom: 1px solid #eee; text-transform: uppercase; }
@@ -62,7 +56,6 @@
         
         .btn-link { color: white; background: var(--accent); text-decoration: none; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; text-align: center; }
 
-        /* Móvil */
         @media (max-width: 768px) {
             .summary-cards { grid-template-columns: repeat(2, 1fr); }
             thead { display: none; }
@@ -134,6 +127,13 @@
         </div>
 
         <div>
+            <label>Tipo de Medio</label>
+            <select id="filterTipoMedio" onchange="runFilters()">
+                <option value="">Todos los medios</option>
+            </select>
+        </div>
+
+        <div>
             <label>Tema / Etiqueta</label>
             <select id="filterEtiqueta" onchange="runFilters()">
                 <option value="">Todos los temas</option>
@@ -170,12 +170,12 @@
     const csv_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2khLH7C3lCFCIV3ss1U5AV4SOL922Sld2rnPhSayp39VqgtlBV8ey63dxgCbur1nHiK-6CfNKB2B-/pub?gid=817460174&single=true&output=csv';
     
     let allData = [];
-    let currentMode = 'hoy'; // hoy, ayer_hoy, mes, especifica
+    let currentFilteredData = [];
+    let currentMode = 'hoy'; 
     const hoyObj = new Date();
     const hoyTime = new Date(hoyObj.getFullYear(), hoyObj.getMonth(), hoyObj.getDate()).getTime();
     const ayerTime = hoyTime - (24 * 60 * 60 * 1000);
 
-    // 1. Cargar Datos
     async function init() {
         try {
             const resp = await fetch(csv_url + '&t=' + new Date().getTime());
@@ -189,6 +189,7 @@
                     const cFecha = h.find(x => x.includes('FECHA DE PUBLICACION'));
                     const cTit = h.find(x => x.includes('TITULAR'));
                     const cMed = h.find(x => x.includes('NOMBRE DEL MEDIO'));
+                    const cTipoMedio = h.find(x => x.includes('TIPO DE MEDIO') || x.includes('TIPO MEDIO')) || cMed; // RESTAURADO
                     const cTon = h.find(x => x.includes('CRITERIO'));
                     const cRes = h.find(x => x.includes('RESUMEN'));
                     const cLin = h.find(x => x.includes('LINK'));
@@ -199,6 +200,7 @@
                         fecha: (row[cFecha] || '').trim(),
                         titular: (row[cTit] || '').trim(),
                         medio: (row[cMed] || '').trim(),
+                        tipoMedio: (row[cTipoMedio] || '').trim(), // RESTAURADO
                         tono: (row[cTon] || '').trim(),
                         resumen: (row[cRes] || '').trim(),
                         link: (row[cLin] || '#').trim(),
@@ -213,19 +215,20 @@
         } catch (e) { alert("Error al cargar datos."); }
     }
 
-    // 2. Llenar Selectores
     function fillSelectors() {
         const tonos = [...new Set(allData.map(r => r.tono))].filter(Boolean).sort();
         const etiquetas = [...new Set(allData.map(r => r.etiqueta))].filter(Boolean).sort();
+        const tipos = [...new Set(allData.map(r => r.tipoMedio))].filter(Boolean).sort(); // RESTAURADO
         
         const selTono = document.getElementById('filterTono');
         const selEti = document.getElementById('filterEtiqueta');
+        const selTipo = document.getElementById('filterTipoMedio'); // RESTAURADO
         
         tonos.forEach(t => selTono.appendChild(new Option(t, t)));
         etiquetas.forEach(e => selEti.appendChild(new Option(e, e)));
+        tipos.forEach(t => selTipo.appendChild(new Option(t, t))); // RESTAURADO
     }
 
-    // 3. Atajos de Fecha
     function setSoloHoy() {
         const y = hoyObj.getFullYear(), m = String(hoyObj.getMonth()+1).padStart(2,'0'), d = String(hoyObj.getDate()).padStart(2,'0');
         document.getElementById('filterFecha').value = `${y}-${m}-${d}`;
@@ -253,7 +256,6 @@
         runFilters();
     }
 
-    // 4. Utilidades de Fecha/Hora
     function parseDate(str) {
         if(!str) return null;
         const p = str.split(' ')[0].split('/');
@@ -273,11 +275,11 @@
         return (h * 60) + m;
     }
 
-    // 5. Motor de Filtrado
     function runFilters() {
         const search = document.getElementById('search').value.toLowerCase();
         const tono = document.getElementById('filterTono').value;
         const etiqueta = document.getElementById('filterEtiqueta').value;
+        const tipoMedio = document.getElementById('filterTipoMedio').value; // RESTAURADO
         const horaVal = document.getElementById('filterHora').value;
         const fechaVal = document.getElementById('filterFecha').value;
         
@@ -296,7 +298,6 @@
                 matchDate = (rowTime === hoyTime);
             } else if (currentMode === 'ayer_hoy') {
                 matchDate = (rowTime === hoyTime || rowTime === ayerTime);
-                // Filtro de hora solo aplica a lo que se registró ayer
                 if (rowTime === ayerTime && marcaTime === ayerTime && minMin !== -1) {
                     if (rowMin < minMin) matchHora = false;
                 }
@@ -310,14 +311,15 @@
             const matchSearch = !search || (r.titular + r.resumen + r.medio).toLowerCase().includes(search);
             const matchTono = !tono || r.tono === tono;
             const matchEtiqueta = !etiqueta || r.etiqueta === etiqueta;
+            const matchTipoMedio = !tipoMedio || r.tipoMedio === tipoMedio; // RESTAURADO
 
-            return matchDate && matchHora && matchSearch && matchTono && matchEtiqueta;
+            return matchDate && matchHora && matchSearch && matchTono && matchEtiqueta && matchTipoMedio;
         });
-
+        
+        currentFilteredData = filtered; // Guardamos para exportar a Excel
         render(filtered);
     }
 
-    // 6. Renderizar Tabla
     function render(data) {
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = '';
@@ -335,7 +337,7 @@
             tbody.innerHTML += `
                 <tr style="background:${bg}">
                     <td><b>${r.fecha}</b><br><small style="opacity:0.7">Reg: ${regTime}</small></td>
-                    <td><b>${r.titular}</b><br><small style="color:var(--primary); font-weight:700; text-transform:uppercase;">${r.medio}</small></td>
+                    <td><b>${r.titular}</b><br><small style="color:var(--primary); font-weight:700; text-transform:uppercase;">${r.medio} (${r.tipoMedio})</small></td>
                     <td><span class="badge ${cls}">${r.tono}</span></td>
                     <td style="font-weight:500">${r.resumen}</td>
                     <td style="text-align:center;"><a href="${r.link}" target="_blank" class="btn-link">Ver Nota</a></td>
@@ -349,17 +351,33 @@
         document.getElementById('data-count').innerText = `Mostrando ${data.length} resultados`;
     }
 
-    // 7. Funciones de Exportación
     function resetFilters() { location.reload(); }
 
+    // EXCEL RESTAURADO AL 100% CON TODAS LAS COLUMNAS
     function downloadExcel() {
-        const rows = [["Fecha", "Titular", "Medio", "Tono", "Resumen", "Link"]];
-        allData.forEach(r => rows.push([r.fecha, r.titular, r.medio, r.tono, r.resumen, r.link]));
-        const csv = "data:text/csv;charset=utf-8,\uFEFF" + rows.map(e => e.join(",")).join("\n");
+        if (currentFilteredData.length === 0) return alert("No hay datos para descargar.");
+        
+        const dataParaExcel = currentFilteredData.map(row => ({
+            'Fecha Registro': row.marca, 
+            'Fecha Noticia': row.fecha,
+            'Titular': row.titular,
+            'Medio': row.medio,
+            'Tipo de Medio': row.tipoMedio,
+            'Tono': row.tono,
+            'Resumen': row.resumen,
+            'Etiqueta': row.etiqueta,
+            'Enlace': row.link
+        }));
+
+        const csvString = Papa.unparse(dataParaExcel);
+        const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.href = encodeURI(csv);
-        link.download = "reporte_semaforo_mml.csv";
+        link.setAttribute("href", url);
+        link.setAttribute("download", "Reporte_Semaforo_MML.csv");
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
     }
 
     function downloadPDF() {
